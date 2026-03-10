@@ -438,7 +438,7 @@ window._syncPasswordToggle = async function() {
     els.forEach(el => el.classList.toggle('on', !!enabled))
 
     const statusText = enabled ? 'Password required on app open' : 'No password required'
-    const ids = ['password-status-text', 'adv-password-status', 'password-sheet-status']
+    const ids = ['password-status-text', 'sec-password-status', 'password-sheet-status']
     ids.forEach(id => {
       const el = document.getElementById(id)
       if (el) el.textContent = statusText
