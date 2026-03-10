@@ -1720,8 +1720,8 @@ body.kb-open .sheet{
       <!-- Ark / On-chain panel -->
       <div id="rcv-onchain-panel">
         <div class="sht-qr"><div class="sht-qr-inner"><div id="rcv-qr"></div></div></div>
-        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--t3);margin-bottom:6px;display:flex;align-items:center;justify-content:center;gap:6px" id="rcv-addr-lbl">
-          Ark Address
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--t3);margin-bottom:6px;display:flex;align-items:center;justify-content:center;gap:6px">
+          <span id="rcv-addr-lbl">Ark Address</span>
           <button class="addr-reveal-btn" onclick="toggleAddrBlur('rcv-addr',this)" title="Show/hide address">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
           </button>
@@ -6220,7 +6220,7 @@ function renderInvHistory() {
         <div>
           <span style="font-weight:600;text-transform:uppercase;letter-spacing:.04em">Paid</span><br>
           ${isPaid ? fmtDate(h.datePaid) : '<span style="opacity:.5">—</span>'}
-          ${isPaid ? '<button onclick="setInvPaidDate(\\'' + h.id + '\\')" style="background:none;border:none;color:var(--acc2);cursor:pointer;font-size:9px;font-weight:600;padding:0;margin-left:2px">edit</button>' : ''}
+          ${isPaid ? `<button onclick="setInvPaidDate('${h.id}')" style="background:none;border:none;color:var(--acc2);cursor:pointer;font-size:9px;font-weight:600;padding:0;margin-left:2px">edit</button>` : ''}
         </div>
       </div>
       <div style="display:flex;justify-content:flex-end;margin-top:8px;gap:8px">
