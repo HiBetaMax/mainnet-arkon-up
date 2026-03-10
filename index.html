@@ -639,6 +639,12 @@ select.finp{cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg xmlns
 .addr-blk{background:var(--surf);border:1px solid var(--bdr);border-radius:var(--r-md);padding:10px 15px;margin-bottom:10px}
 .addr-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--t3);margin-bottom:5px}
 .addr-val{font-size:12px;color:var(--t2);word-break:break-all;line-height:1.6;font-weight:500}
+.addr-masked{filter:blur(5px);user-select:none;pointer-events:none;transition:filter .2s}
+.addr-reveal-btn{background:none;border:none;cursor:pointer;padding:4px;color:var(--t3);display:inline-flex;align-items:center;vertical-align:middle}
+.contact-suggest{position:absolute;left:0;right:0;top:100%;z-index:20;background:var(--surf);border:1.5px solid var(--bdr);border-radius:10px;max-height:180px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,.25)}
+.contact-suggest-item{padding:10px 14px;cursor:pointer;border-bottom:1px solid var(--bdr);transition:background .1s}
+.contact-suggest-item:hover{background:var(--bg3)}
+.contact-suggest-item:last-child{border-bottom:none}
 
 .gen-bar{
   background:var(--surf);border:1px solid var(--bdr);
@@ -1344,8 +1350,13 @@ body.kb-open .sheet{
           </div>
         </div>
         <div class="addr-blk">
-          <div class="addr-lbl">Your address</div>
-          <div class="addr-val" id="qr-addr-val" id_addr_loading>Loading address…</div>
+          <div class="addr-lbl" style="display:flex;align-items:center;justify-content:space-between">
+            Your address
+            <button class="addr-reveal-btn" onclick="toggleAddrBlur('qr-addr-val',this)" title="Show/hide address">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:15px;height:15px"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+          </div>
+          <div class="addr-val addr-masked" id="qr-addr-val" id_addr_loading>Loading address…</div>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
           <button class="btnp" onclick="cpAddr()">Copy</button>
@@ -1709,9 +1720,14 @@ body.kb-open .sheet{
       <!-- Ark / On-chain panel -->
       <div id="rcv-onchain-panel">
         <div class="sht-qr"><div class="sht-qr-inner"><div id="rcv-qr"></div></div></div>
-        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--t3);margin-bottom:6px;text-align:center" id="rcv-addr-lbl">Ark Address</div>
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--t3);margin-bottom:6px;display:flex;align-items:center;justify-content:center;gap:6px" id="rcv-addr-lbl">
+          Ark Address
+          <button class="addr-reveal-btn" onclick="toggleAddrBlur('rcv-addr',this)" title="Show/hide address">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+        </div>
         <div class="addr-row">
-          <span class="addr-txt" id="rcv-addr">Loading…</span>
+          <span class="addr-txt addr-masked" id="rcv-addr">Loading…</span>
           <div class="cpb" onclick="cpTxt('rcv-addr')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg></div>
         </div>
         <div id="rcv-amt-wrap">
@@ -3356,6 +3372,17 @@ function cpAddr() {
   navigator.clipboard.writeText(qrCurAddr).catch(() => {});
   showToast('Address copied');
 }
+function toggleAddrBlur(elId, btn) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  const hidden = el.classList.toggle('addr-masked');
+  if (btn) {
+    const svg = hidden
+      ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:15px;height:15px"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>'
+      : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:15px;height:15px"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>';
+    btn.innerHTML = svg;
+  }
+}
 
 function liveQR() {
   const val = document.getElementById('gen-inp').value.trim();
@@ -3747,6 +3774,7 @@ if (typeof _origOpenSheet === 'function') {
       }
     }
     if (id === 'invhistory') renderInvHistory();
+    if (id === 'invcontacts') renderInvContacts();
   };
 }
 
@@ -5497,28 +5525,160 @@ let invItems = [];
 let invCurrency = 'USD'; // invoice-specific currency, independent of wallet display
 let invColor = '#0e3a8a'; // invoice accent color
 
-const INV_CO_KEY = 'arkon_inv_company';
-function saveInvCompany() {
-  const data = {
-    name:  document.getElementById('inv-from-name').value,
-    addr:  document.getElementById('inv-from-addr').value,
-    email: document.getElementById('inv-from-email').value,
-    phone: document.getElementById('inv-from-phone').value,
-  };
-  localStorage.setItem(INV_CO_KEY, JSON.stringify(data));
-  showToast('Company details saved');
-  const btn = document.getElementById('inv-save-co-btn');
+// ═══════════════════════════════════════════
+//    INVOICE CONTACTS (unified company + client)
+// ═══════════════════════════════════════════
+const INV_CONTACTS_KEY = 'arkon_inv_contacts';
+function getInvContacts() {
+  try { return JSON.parse(localStorage.getItem(INV_CONTACTS_KEY) || '[]'); } catch { return []; }
+}
+function saveInvContacts(list) { localStorage.setItem(INV_CONTACTS_KEY, JSON.stringify(list)); }
+
+function saveContactFromForm(type) {
+  const prefix = type === 'from' ? 'inv-from' : 'inv-to';
+  const name = document.getElementById(prefix + '-name').value.trim();
+  if (!name) { showToast('Enter a name first'); return; }
+  const data = { name, addr: document.getElementById(prefix + '-addr').value, email: document.getElementById(prefix + '-email').value };
+  if (type === 'from') data.phone = document.getElementById('inv-from-phone').value;
+  data.type = type; data.ts = Date.now();
+  const contacts = getInvContacts();
+  const idx = contacts.findIndex(c => c.name === name && c.type === type);
+  if (idx >= 0) contacts[idx] = { ...contacts[idx], ...data };
+  else contacts.push(data);
+  saveInvContacts(contacts);
+  showToast('Contact saved');
+  const btnId = type === 'from' ? 'inv-save-co-btn' : 'inv-save-client-btn';
+  const btn = document.getElementById(btnId);
   if (btn) { btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><polyline points="20 6 9 17 4 12"/></svg> Saved'; btn.style.color = 'var(--grn)'; btn.style.borderColor = 'var(--grn)'; }
 }
-function loadInvCompany() {
+
+function fillContactToForm(type, contact) {
+  const prefix = type === 'from' ? 'inv-from' : 'inv-to';
+  document.getElementById(prefix + '-name').value = contact.name || '';
+  document.getElementById(prefix + '-addr').value = contact.addr || '';
+  document.getElementById(prefix + '-email').value = contact.email || '';
+  if (type === 'from' && contact.phone) document.getElementById('inv-from-phone').value = contact.phone;
+  hideContactSuggest(type);
+}
+
+function showContactSuggest(type, query) {
+  const el = document.getElementById(type === 'from' ? 'inv-from-suggest' : 'inv-to-suggest');
+  if (!el) return;
+  const q = (query || '').toLowerCase();
+  const contacts = getInvContacts().filter(c => {
+    if (q && !c.name.toLowerCase().includes(q)) return false;
+    return true;
+  });
+  if (contacts.length === 0) { el.style.display = 'none'; return; }
+  el.style.display = 'block';
+  el.innerHTML = contacts.map((c, i) => {
+    const typeLabel = c.type === 'from' ? 'Company' : 'Client';
+    return `<div class="contact-suggest-item" data-cidx="${i}" onmousedown="pickContact('${type}',${i})">
+      <div style="font-size:13px;font-weight:600;color:var(--t1)">${esc(c.name)}</div>
+      <div style="font-size:10px;color:var(--t3);margin-top:1px">${esc(c.email || c.addr || typeLabel)}</div>
+    </div>`;
+  }).join('');
+  // store filtered contacts for pick
+  el._contacts = contacts;
+}
+
+function hideContactSuggest(type) {
+  const el = document.getElementById(type === 'from' ? 'inv-from-suggest' : 'inv-to-suggest');
+  if (el) setTimeout(() => el.style.display = 'none', 150);
+}
+function pickContact(type, idx) {
+  const el = document.getElementById(type === 'from' ? 'inv-from-suggest' : 'inv-to-suggest');
+  const c = el && el._contacts && el._contacts[idx];
+  if (c) fillContactToForm(type, c);
+}
+
+// Contacts repository rendering
+function renderInvContacts() {
+  const list = document.getElementById('inv-contacts-list');
+  const empty = document.getElementById('inv-contacts-empty');
+  if (!list) return;
+  const contacts = getInvContacts();
+  if (contacts.length === 0) { list.innerHTML = ''; if (empty) empty.style.display = 'block'; return; }
+  if (empty) empty.style.display = 'none';
+  list.innerHTML = contacts.map(c => {
+    const typeColor = c.type === 'from' ? 'var(--acc2)' : 'var(--grn)';
+    const typeLabel = c.type === 'from' ? 'Company' : 'Client';
+    return `<div style="background:var(--surf);border:1.5px solid var(--bdr);border-radius:14px;padding:14px 16px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:9px;font-weight:800;color:${typeColor};background:${typeColor}18;padding:3px 6px;border-radius:5px;letter-spacing:.04em">${typeLabel}</span>
+          <span style="font-size:14px;font-weight:700;color:var(--t1)">${esc(c.name)}</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:4px">
+          <button onclick="editInvContact('${c.ts}')" style="background:none;border:none;cursor:pointer;padding:4px;color:var(--t3)" title="Edit">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          </button>
+          <button onclick="deleteInvContact('${c.ts}')" style="background:none;border:none;cursor:pointer;padding:4px;color:var(--t3)" title="Delete">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+          </button>
+        </div>
+      </div>
+      ${c.addr ? '<div style="font-size:11px;color:var(--t3);margin-bottom:2px">' + esc(c.addr) + '</div>' : ''}
+      ${c.email ? '<div style="font-size:11px;color:var(--t3);margin-bottom:2px">' + esc(c.email) + '</div>' : ''}
+      ${c.phone ? '<div style="font-size:11px;color:var(--t3)">' + esc(c.phone) + '</div>' : ''}
+    </div>`;
+  }).join('');
+}
+
+function editInvContact(ts) {
+  const contacts = getInvContacts();
+  const c = contacts.find(x => String(x.ts) === String(ts));
+  if (!c) return;
+  const name = prompt('Name:', c.name);
+  if (name === null) return;
+  const addr = prompt('Address:', c.addr || '');
+  if (addr === null) return;
+  const email = prompt('Email:', c.email || '');
+  if (email === null) return;
+  c.name = name.trim() || c.name;
+  c.addr = addr;
+  c.email = email;
+  if (c.type === 'from') {
+    const phone = prompt('Phone:', c.phone || '');
+    if (phone !== null) c.phone = phone;
+  }
+  saveInvContacts(contacts);
+  renderInvContacts();
+  showToast('Contact updated');
+}
+
+function deleteInvContact(ts) {
+  if (!confirm('Delete this contact?')) return;
+  const contacts = getInvContacts().filter(c => String(c.ts) !== String(ts));
+  saveInvContacts(contacts);
+  renderInvContacts();
+}
+
+// Migrate old company data
+(function migrateOldCompany() {
+  const old = localStorage.getItem('arkon_inv_company');
+  if (!old) return;
   try {
-    const d = JSON.parse(localStorage.getItem(INV_CO_KEY));
-    if (!d) return;
-    if (d.name)  document.getElementById('inv-from-name').value = d.name;
-    if (d.addr)  document.getElementById('inv-from-addr').value = d.addr;
-    if (d.email) document.getElementById('inv-from-email').value = d.email;
-    if (d.phone) document.getElementById('inv-from-phone').value = d.phone;
+    const d = JSON.parse(old);
+    if (d && d.name) {
+      const contacts = getInvContacts();
+      if (!contacts.some(c => c.name === d.name && c.type === 'from')) {
+        contacts.push({ name: d.name, addr: d.addr || '', email: d.email || '', phone: d.phone || '', type: 'from', ts: Date.now() });
+        saveInvContacts(contacts);
+      }
+    }
+    localStorage.removeItem('arkon_inv_company');
   } catch {}
+})();
+
+function loadInvCompany() {
+  const contacts = getInvContacts().filter(c => c.type === 'from');
+  if (contacts.length === 0) return;
+  const d = contacts[0]; // most recent company contact
+  if (d.name)  document.getElementById('inv-from-name').value = d.name;
+  if (d.addr)  document.getElementById('inv-from-addr').value = d.addr;
+  if (d.email) document.getElementById('inv-from-email').value = d.email;
+  if (d.phone) document.getElementById('inv-from-phone').value = d.phone;
 }
 
 function openInvoice() {
@@ -5535,9 +5695,12 @@ function openInvoice() {
   document.getElementById('inv-pay-addr').value = ARK_ADDR;
   // Load saved company details
   loadInvCompany();
-  // Reset save button state
+  // Reset save button states
+  const saveSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>';
   const coBtn = document.getElementById('inv-save-co-btn');
-  if (coBtn) { coBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Save Company Details'; coBtn.style.color = 'var(--acc2)'; coBtn.style.borderColor = 'var(--acc2)'; }
+  if (coBtn) { coBtn.innerHTML = saveSvg + ' Save Details'; coBtn.style.color = 'var(--acc2)'; coBtn.style.borderColor = 'var(--acc2)'; }
+  const clBtn = document.getElementById('inv-save-client-btn');
+  if (clBtn) { clBtn.innerHTML = saveSvg + ' Save Client Details'; clBtn.style.color = 'var(--acc2)'; clBtn.style.borderColor = 'var(--acc2)'; }
   // Reset to step 1
   invItems = [{ desc:'', qty:1, price:'' }];
   renderInvItems();
@@ -6054,9 +6217,13 @@ function renderInvHistory() {
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;font-size:10px;color:var(--t3)">
         <div><span style="font-weight:600;text-transform:uppercase;letter-spacing:.04em">Created</span><br>${fmtDate(h.dateCreated)}</div>
         <div><span style="font-weight:600;text-transform:uppercase;letter-spacing:.04em">Due</span><br>${fmtDate(h.dateDue)}</div>
-        <div><span style="font-weight:600;text-transform:uppercase;letter-spacing:.04em">Paid</span><br>${h.datePaid ? fmtDate(h.datePaid) : '—'}</div>
+        <div>
+          <span style="font-weight:600;text-transform:uppercase;letter-spacing:.04em">Paid</span><br>
+          ${isPaid ? fmtDate(h.datePaid) : '<span style="opacity:.5">—</span>'}
+          ${isPaid ? '<button onclick="setInvPaidDate(\\'' + h.id + '\\')" style="background:none;border:none;color:var(--acc2);cursor:pointer;font-size:9px;font-weight:600;padding:0;margin-left:2px">edit</button>' : ''}
+        </div>
       </div>
-      <div style="display:flex;justify-content:flex-end;margin-top:8px">
+      <div style="display:flex;justify-content:flex-end;margin-top:8px;gap:8px">
         <button onclick="deleteInvHist('${h.id}')" style="background:none;border:none;cursor:pointer;padding:4px;color:var(--t3);font-size:10px;display:flex;align-items:center;gap:3px">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
           Delete
@@ -6073,9 +6240,23 @@ function toggleInvPaid(id) {
     entry.status = 'unpaid';
     entry.datePaid = '';
   } else {
+    const today = new Date().toISOString().split('T')[0];
+    const dateStr = prompt('Date paid (YYYY-MM-DD):', today);
+    if (dateStr === null) return;
     entry.status = 'paid';
-    entry.datePaid = new Date().toISOString().split('T')[0];
+    entry.datePaid = dateStr.trim() || today;
   }
+  saveInvHistory(hist);
+  renderInvHistory();
+}
+function setInvPaidDate(id) {
+  const hist = getInvHistory();
+  const entry = hist.find(h => h.id === id);
+  if (!entry) return;
+  const dateStr = prompt('Date paid (YYYY-MM-DD):', entry.datePaid || '');
+  if (dateStr === null) return;
+  entry.datePaid = dateStr.trim();
+  if (!entry.datePaid) { entry.status = 'unpaid'; }
   saveInvHistory(hist);
   renderInvHistory();
 }
@@ -7380,14 +7561,24 @@ async function arcadeSendBitcoin(address, amount) {
 
       <!-- STEP 1 — FROM (Your business) -->
       <div class="inv-section active" id="inv-s1">
-        <div class="inv-sect-lbl">Your Business</div>
-        <div class="fld"><label class="flbl">Company / Your Name <span style="color:var(--red)">*</span></label><input class="finp" id="inv-from-name" placeholder="e.g. Arkade Labs Ltd."></div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <div class="inv-sect-lbl" style="margin:0">Your Business</div>
+          <button onclick="openSheet('invcontacts')" style="background:var(--surf);border:1.5px solid var(--bdr);border-radius:8px;padding:4px 8px;cursor:pointer;display:flex;align-items:center;gap:4px;color:var(--t2);font-size:10px;font-weight:600">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+            Contacts
+          </button>
+        </div>
+        <div class="fld" style="position:relative">
+          <label class="flbl">Company / Your Name <span style="color:var(--red)">*</span></label>
+          <input class="finp" id="inv-from-name" placeholder="e.g. Arkade Labs Ltd." oninput="showContactSuggest('from',this.value)" onfocus="showContactSuggest('from',this.value)" onblur="hideContactSuggest('from')" autocomplete="off">
+          <div id="inv-from-suggest" class="contact-suggest" style="display:none"></div>
+        </div>
         <div class="fld"><label class="flbl">Address</label><input class="finp" id="inv-from-addr" placeholder="123 Bitcoin Street, London"></div>
         <div class="fld"><label class="flbl">Email</label><input class="finp" id="inv-from-email" placeholder="hello@arkadelabs.com" type="email"></div>
         <div class="fld"><label class="flbl">Phone (optional)</label><input class="finp" id="inv-from-phone" placeholder="+44 7000 000000" type="tel"></div>
-        <button class="btns" id="inv-save-co-btn" onclick="saveInvCompany()" style="margin-bottom:10px;display:flex;align-items:center;justify-content:center;gap:6px;color:var(--acc2);border-color:var(--acc2)">
+        <button class="btns" id="inv-save-co-btn" onclick="saveContactFromForm('from')" style="margin-bottom:10px;display:flex;align-items:center;justify-content:center;gap:6px;color:var(--acc2);border-color:var(--acc2)">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-          Save Company Details
+          Save Details
         </button>
         <button class="btnp" onclick="goInvStep(2)">Next — Bill To →</button>
       </div>
@@ -7400,9 +7591,17 @@ async function arcadeSendBitcoin(address, amount) {
           <div class="fld"><label class="flbl">Invoice Date</label><input class="finp" id="inv-date" type="date"></div>
         </div>
         <div class="fld"><label class="flbl">Due Date</label><input class="finp" id="inv-due" type="date"></div>
-        <div class="fld"><label class="flbl">Client Name <span style="color:var(--red)">*</span></label><input class="finp" id="inv-to-name" placeholder="Client company or person"></div>
+        <div class="fld" style="position:relative">
+          <label class="flbl">Client Name <span style="color:var(--red)">*</span></label>
+          <input class="finp" id="inv-to-name" placeholder="Client company or person" oninput="showContactSuggest('to',this.value)" onfocus="showContactSuggest('to',this.value)" onblur="hideContactSuggest('to')" autocomplete="off">
+          <div id="inv-to-suggest" class="contact-suggest" style="display:none"></div>
+        </div>
         <div class="fld"><label class="flbl">Client Address</label><input class="finp" id="inv-to-addr" placeholder="456 Satoshi Ave, New York"></div>
         <div class="fld"><label class="flbl">Client Email</label><input class="finp" id="inv-to-email" placeholder="client@example.com" type="email"></div>
+        <button class="btns" id="inv-save-client-btn" onclick="saveContactFromForm('to')" style="margin-bottom:10px;display:flex;align-items:center;justify-content:center;gap:6px;color:var(--acc2);border-color:var(--acc2)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+          Save Client Details
+        </button>
         <button class="btnp" onclick="goInvStep(3)">Next — Add Items →</button>
         <button class="btns" onclick="goInvStep(1)">← Back</button>
       </div>
@@ -7534,6 +7733,27 @@ async function arcadeSendBitcoin(address, amount) {
         <div style="font-size:12px;opacity:.7">Generated invoices will appear here</div>
       </div>
       <button class="btns" onclick="closeSheet('invhistory')" style="margin-top:12px">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     INVOICE CONTACTS SHEET
+══════════════════════════════════════ -->
+<div class="overlay" id="sheet-invcontacts">
+  <div class="sheet" style="max-height:96vh">
+    <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
+    <div class="sheet-head">
+      <span class="sheet-title">Contacts</span>
+      <button class="sheet-close" onclick="closeSheet('invcontacts')">✕</button>
+    </div>
+    <div class="sheet-body">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--t3);margin-bottom:10px">Saved contacts for invoices</div>
+      <div id="inv-contacts-list" style="display:flex;flex-direction:column;gap:8px"></div>
+      <div id="inv-contacts-empty" style="display:none;text-align:center;padding:32px 16px;color:var(--t3);font-size:13px">
+        No contacts saved yet.<br><span style="font-size:11px;opacity:.7">Save details from the invoice form</span>
+      </div>
+      <button class="btns" onclick="closeSheet('invcontacts')" style="margin-top:14px">Close</button>
     </div>
   </div>
 </div>
