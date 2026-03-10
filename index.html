@@ -533,10 +533,10 @@ select.finp{cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg xmlns
 .main-actions{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:0 20px 22px}
 .main-btn{
   display:flex;align-items:center;justify-content:center;gap:10px;
-  padding:14px 20px;border-radius:var(--r-card);
+  width:100%;padding:14px 20px;border-radius:var(--r-card);
   border:none;cursor:pointer;font-size:14px;font-weight:700;
   transition:all .15s var(--ease);
-  letter-spacing:.01em;
+  letter-spacing:.01em;text-align:center;
 }
 .main-btn:active{transform:scale(.97)}
 .main-btn.send{background:var(--acc);color:#fff;box-shadow:var(--shb)}
@@ -1626,65 +1626,67 @@ body.kb-open .sheet{
     <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
     <div class="sheet-head"><span class="sheet-title">Send Bitcoin</span><button class="sheet-close" onclick="closeSheet('send')">✕</button></div>
     <div class="sheet-body">
-      <!-- Network pills — Ark first, uniform with receive sheet -->
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px">
-        <button class="inv-cur-btn active" id="snd-net-btn-ark" onclick="selectSendNet('ark',this)"
-          style="padding:9px 6px;font-size:12px;border-radius:var(--r-md)">
-          <div style="font-weight:800">Ark</div>
-        </button>
-        <button class="inv-cur-btn" id="snd-net-btn-lightning" onclick="selectSendNet('lightning',this)"
-          style="padding:9px 6px;font-size:12px;border-radius:var(--r-md)">
-          <div style="font-weight:800">Lightning</div>
-        </button>
-        <button class="inv-cur-btn" id="snd-net-btn-onchain" onclick="selectSendNet('onchain',this)"
-          style="padding:9px 6px;font-size:12px;border-radius:var(--r-md)">
-          <div style="font-weight:800">On-chain</div>
-        </button>
+      <!-- Network pills — flex layout like QR pills -->
+      <div class="qr-type-row" style="margin-bottom:14px" id="snd-net-row">
+        <div class="qtt active" id="snd-net-btn-ark" onclick="selectSendNet('ark',this)">Ark</div>
+        <div class="qtt" id="snd-net-btn-lightning" onclick="selectSendNet('lightning',this)">Lightning</div>
+        <div class="qtt" id="snd-net-btn-onchain" onclick="selectSendNet('onchain',this)">On-chain</div>
+        <div class="qtt" id="snd-net-btn-saved" onclick="toggleSavedView(this)">Saved</div>
       </div>
       <input type="hidden" id="snd-net" value="ark">
-      <!-- Address row with QR scan + upload buttons -->
-      <div class="fld">
-        <label class="flbl" id="snd-addr-lbl">Ark Address</label>
-        <div style="display:flex;gap:8px;align-items:center">
-          <input class="finp" id="s-addr" placeholder="ark1q…" type="text" style="flex:1" oninput="autoDetectSendNet(this.value)">
-          <button onclick="openQRScan()" style="flex-shrink:0;width:46px;height:46px;border-radius:var(--r-md);background:var(--accs);border:1px solid var(--acc);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--acc2)" title="Scan QR">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="3" height="3"/><rect x="18" y="14" width="3" height="3"/><rect x="14" y="18" width="3" height="3"/><rect x="18" y="18" width="3" height="3"/></svg>
-          </button>
-          <button onclick="document.getElementById('invoice-upload-input').click()" style="flex-shrink:0;width:46px;height:46px;border-radius:var(--r-md);background:var(--accs);border:1px solid var(--acc);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--acc2)" title="Upload invoice or QR image">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-          </button>
-          <input type="file" id="invoice-upload-input" accept="image/*,.pdf,.txt" style="display:none" onchange="handleInvoiceUpload(this)">
+      <!-- Saved addresses list (hidden by default) -->
+      <div id="fav-list-view" style="display:none">
+        <div id="fav-list-items" style="display:flex;flex-direction:column;gap:8px"></div>
+        <div id="fav-empty" style="display:none;text-align:center;padding:32px 16px;color:var(--t3);font-size:13px">
+          No saved addresses yet.<br><span style="font-size:11px;color:var(--t3);opacity:.7">Send to an address and save it after payment</span>
         </div>
       </div>
-      <div id="send-amt-wrap">
-        <!-- Rendered by updateSendAmountFields() based on balDisplayMode -->
-      </div>
-      <!-- Dynamic fee section -->
-      <div id="fee-section-onchain" style="display:none">
-        <div class="fld"><label class="flbl">Network Fee</label>
-          <div class="fee-grid">
-            <div class="fo" onclick="selFee(this)"><div class="fo-nm">SLOW</div><div class="fo-r">6 sat/vB</div><div class="fo-t">~1 hour</div></div>
-            <div class="fo active" onclick="selFee(this)"><div class="fo-nm">MEDIUM</div><div class="fo-r">12 sat/vB</div><div class="fo-t">~10 min</div></div>
-            <div class="fo" onclick="selFee(this)"><div class="fo-nm">FAST</div><div class="fo-r">24 sat/vB</div><div class="fo-t">~1-2 min</div></div>
+      <!-- Send form (hidden when Saved tab active) -->
+      <div id="send-form-area">
+        <!-- Address row with QR scan + upload buttons -->
+        <div class="fld">
+          <label class="flbl" id="snd-addr-lbl">Ark Address</label>
+          <div style="display:flex;gap:8px;align-items:center">
+            <input class="finp" id="s-addr" placeholder="ark1q…" type="text" style="flex:1" oninput="autoDetectSendNet(this.value)">
+            <button onclick="openQRScan()" style="flex-shrink:0;width:46px;height:46px;border-radius:var(--r-md);background:var(--accs);border:1px solid var(--acc);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--acc2)" title="Scan QR">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="3" height="3"/><rect x="18" y="14" width="3" height="3"/><rect x="14" y="18" width="3" height="3"/><rect x="18" y="18" width="3" height="3"/></svg>
+            </button>
+            <button onclick="document.getElementById('invoice-upload-input').click()" style="flex-shrink:0;width:46px;height:46px;border-radius:var(--r-md);background:var(--accs);border:1px solid var(--acc);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--acc2)" title="Upload invoice or QR image">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            </button>
+            <input type="file" id="invoice-upload-input" accept="image/*,.pdf,.txt" style="display:none" onchange="handleInvoiceUpload(this)">
           </div>
         </div>
-        <div class="fsm"><div class="fl"><span class="fl-l">Estimated fee</span><span class="fl-v">~1,860 SATS ($1.79)</span></div><div class="fl"><span class="fl-l">Estimated time</span><span class="fl-v">~10 minutes</span></div></div>
-      </div>
-      <div id="fee-section-lightning" style="display:none">
-        <div class="fsm">
-          <div class="fl"><span class="fl-l">Routing fee</span><span class="fl-v">~1–10 SATS (0.01%)</span></div>
-          <div class="fl"><span class="fl-l">Settlement</span><span class="fl-v" style="color:var(--grn)">Instant</span></div>
+        <div id="send-amt-wrap">
+          <!-- Rendered by updateSendAmountFields() based on balDisplayMode -->
         </div>
-      </div>
-      <div id="fee-section-ark">
-        <div class="fsm">
-          <div class="fl"><span class="fl-l">Service fee</span><span class="fl-v">~0 SATS (batched)</span></div>
-          <div class="fl"><span class="fl-l">Settlement</span><span class="fl-v" style="color:var(--grn)">Instant off-chain</span></div>
-          <div class="fl"><span class="fl-l">Round time</span><span class="fl-v">~5 seconds</span></div>
+        <!-- Dynamic fee section -->
+        <div id="fee-section-onchain" style="display:none">
+          <div class="fld"><label class="flbl">Network Fee</label>
+            <div class="fee-grid">
+              <div class="fo" onclick="selFee(this)"><div class="fo-nm">SLOW</div><div class="fo-r">6 sat/vB</div><div class="fo-t">~1 hour</div></div>
+              <div class="fo active" onclick="selFee(this)"><div class="fo-nm">MEDIUM</div><div class="fo-r">12 sat/vB</div><div class="fo-t">~10 min</div></div>
+              <div class="fo" onclick="selFee(this)"><div class="fo-nm">FAST</div><div class="fo-r">24 sat/vB</div><div class="fo-t">~1-2 min</div></div>
+            </div>
+          </div>
+          <div class="fsm"><div class="fl"><span class="fl-l">Estimated fee</span><span class="fl-v">~1,860 SATS ($1.79)</span></div><div class="fl"><span class="fl-l">Estimated time</span><span class="fl-v">~10 minutes</span></div></div>
         </div>
+        <div id="fee-section-lightning" style="display:none">
+          <div class="fsm">
+            <div class="fl"><span class="fl-l">Routing fee</span><span class="fl-v">~1–10 SATS (0.01%)</span></div>
+            <div class="fl"><span class="fl-l">Settlement</span><span class="fl-v" style="color:var(--grn)">Instant</span></div>
+          </div>
+        </div>
+        <div id="fee-section-ark">
+          <div class="fsm">
+            <div class="fl"><span class="fl-l">Service fee</span><span class="fl-v">~0 SATS (batched)</span></div>
+            <div class="fl"><span class="fl-l">Settlement</span><span class="fl-v" style="color:var(--grn)">Instant off-chain</span></div>
+            <div class="fl"><span class="fl-l">Round time</span><span class="fl-v">~5 seconds</span></div>
+          </div>
+        </div>
+        <button class="btnp" onclick="doSend()">Confirm Send</button>
+        <button class="btns" onclick="closeSheet('send')">Cancel</button>
       </div>
-      <button class="btnp" onclick="doSend()">Confirm Send</button>
-      <button class="btns" onclick="closeSheet('send')">Cancel</button>
     </div>
   </div>
 </div>
@@ -1697,20 +1699,11 @@ body.kb-open .sheet{
     <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
     <div class="sheet-head"><span class="sheet-title">Receive Bitcoin</span><button class="sheet-close" onclick="closeSheet('receive')">✕</button></div>
     <div class="sheet-body">
-      <!-- Network pills — Ark first, uniform with send sheet -->
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px">
-        <button class="inv-cur-btn active" id="rcv-tab-ark" onclick="setRcvType(this,'ark')"
-          style="padding:9px 6px;font-size:12px;border-radius:var(--r-md)">
-          <div style="font-weight:800">Ark</div>
-        </button>
-        <button class="inv-cur-btn" id="rcv-tab-lightning" onclick="setRcvType(this,'lightning')"
-          style="padding:9px 6px;font-size:12px;border-radius:var(--r-md)">
-          <div style="font-weight:800">Lightning</div>
-        </button>
-        <button class="inv-cur-btn" id="rcv-tab-onchain" onclick="setRcvType(this,'onchain')"
-          style="padding:9px 6px;font-size:12px;border-radius:var(--r-md)">
-          <div style="font-weight:800">On-chain</div>
-        </button>
+      <!-- Network pills — flex layout like QR pills -->
+      <div class="qr-type-row" style="margin-bottom:16px">
+        <div class="qtt active" id="rcv-tab-ark" onclick="setRcvType(this,'ark')">Ark</div>
+        <div class="qtt" id="rcv-tab-lightning" onclick="setRcvType(this,'lightning')">Lightning</div>
+        <div class="qtt" id="rcv-tab-onchain" onclick="setRcvType(this,'onchain')">On-chain</div>
       </div>
 
       <!-- Ark / On-chain panel -->
@@ -3536,6 +3529,215 @@ function resetLnInvoiceForm() {
 /* ═══════════════════════════════════════════
    SEND
 ═══════════════════════════════════════════ */
+// ═══════════════════════════════════════════
+//    SAVED ADDRESSES (Encrypted Address Book)
+// ═══════════════════════════════════════════
+const FAV_STORE = 'arkon_addrbook_v2';
+const FAV_KSTORE = 'arkon_addrbook_k';
+
+// --- Crypto helpers (AES-GCM via SubtleCrypto) ---
+async function _favGetKey() {
+  try {
+    let raw = localStorage.getItem(FAV_KSTORE);
+    if (raw) {
+      const buf = Uint8Array.from(atob(raw), c => c.charCodeAt(0));
+      return crypto.subtle.importKey('raw', buf, 'AES-GCM', false, ['encrypt','decrypt']);
+    }
+    const key = await crypto.subtle.generateKey({ name:'AES-GCM', length:256 }, true, ['encrypt','decrypt']);
+    const exported = await crypto.subtle.exportKey('raw', key);
+    localStorage.setItem(FAV_KSTORE, btoa(String.fromCharCode(...new Uint8Array(exported))));
+    return key;
+  } catch { return null; }
+}
+
+async function _favEncrypt(data) {
+  const key = await _favGetKey();
+  if (!key) return null;
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const enc = await crypto.subtle.encrypt({ name:'AES-GCM', iv }, key, new TextEncoder().encode(JSON.stringify(data)));
+  const buf = new Uint8Array(iv.length + enc.byteLength);
+  buf.set(iv); buf.set(new Uint8Array(enc), iv.length);
+  return btoa(String.fromCharCode(...buf));
+}
+
+async function _favDecrypt(b64) {
+  try {
+    const key = await _favGetKey();
+    if (!key || !b64) return null;
+    const buf = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+    const iv = buf.slice(0, 12);
+    const ct = buf.slice(12);
+    const dec = await crypto.subtle.decrypt({ name:'AES-GCM', iv }, key, ct);
+    return JSON.parse(new TextDecoder().decode(dec));
+  } catch { return null; } // tampered or corrupt → return null
+}
+
+async function getFavorites() {
+  const raw = localStorage.getItem(FAV_STORE);
+  if (!raw) return [];
+  const data = await _favDecrypt(raw);
+  if (!data) { showToast('Address book corrupted — resetting'); localStorage.removeItem(FAV_STORE); return []; }
+  return Array.isArray(data) ? data : [];
+}
+
+async function saveFavorites(favs) {
+  const enc = await _favEncrypt(favs);
+  if (enc) localStorage.setItem(FAV_STORE, enc);
+}
+
+function detectNetworkLabel(address) {
+  const type = window._detectAddressType ? window._detectAddressType(address) : 'unknown';
+  if (type === 'bitcoin') return 'L1';
+  if (type === 'ark') return 'ARK';
+  if (/^(bc1|1|3|tb1)/i.test(address)) return 'L1';
+  return 'ARK';
+}
+
+async function addFavorite(name, address) {
+  const favs = await getFavorites();
+  if (favs.some(f => f.address === address)) { showToast('Already saved'); return false; }
+  const net = detectNetworkLabel(address);
+  if (net !== 'ARK' && net !== 'L1') { showToast('Only ARK & L1 addresses can be saved'); return false; }
+  favs.push({ name: name.trim(), address, net, ts: Date.now() });
+  await saveFavorites(favs);
+  return true;
+}
+
+async function removeFavoriteAddr(address) {
+  const favs = (await getFavorites()).filter(f => f.address !== address);
+  await saveFavorites(favs);
+  renderFavList();
+}
+
+// --- Saved tab view in send sheet ---
+let _favViewOpen = false;
+
+function toggleSavedView(el) {
+  const row = document.getElementById('snd-net-row');
+  if (row) row.querySelectorAll('.qtt').forEach(x => x.classList.remove('active'));
+  if (el) el.classList.add('active');
+
+  const form = document.getElementById('send-form-area');
+  const list = document.getElementById('fav-list-view');
+  _favViewOpen = true;
+  if (form) form.style.display = 'none';
+  if (list) list.style.display = 'block';
+  renderFavList();
+}
+
+function closeSavedView() {
+  _favViewOpen = false;
+  const form = document.getElementById('send-form-area');
+  const list = document.getElementById('fav-list-view');
+  if (form) form.style.display = 'block';
+  if (list) list.style.display = 'none';
+}
+
+async function renderFavList() {
+  const items = document.getElementById('fav-list-items');
+  const empty = document.getElementById('fav-empty');
+  if (!items) return;
+  const favs = await getFavorites();
+  if (favs.length === 0) {
+    items.innerHTML = '';
+    if (empty) empty.style.display = 'block';
+    return;
+  }
+  if (empty) empty.style.display = 'none';
+  items.innerHTML = favs.map(f => {
+    const netColor = { ARK:'var(--acc2)', L1:'var(--grn)' }[f.net] || 'var(--t2)';
+    const safeAddr = esc(f.address);
+    const safeName = esc(f.name);
+    return `<div style="background:var(--surf);border:1.5px solid var(--bdr);border-radius:14px;padding:14px 16px;cursor:pointer" onclick="useFavorite('${f.address.replace(/'/g,"\\'")}','${f.net}')">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:9px;font-weight:800;color:${netColor};background:${netColor}18;padding:3px 6px;border-radius:5px;letter-spacing:.04em">${f.net}</span>
+          <span style="font-size:14px;font-weight:700;color:var(--t1)">${safeName}</span>
+        </div>
+        <button onclick="event.stopPropagation();confirmDeleteFav('${f.address.replace(/'/g,"\\'")}')" style="background:none;border:none;cursor:pointer;padding:4px;color:var(--t3)" title="Delete">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+        </button>
+      </div>
+      <div style="font-size:11px;color:var(--t3);font-family:var(--f-mono);word-break:break-all;line-height:1.5">${safeAddr}</div>
+    </div>`;
+  }).join('');
+}
+
+function useFavorite(address, net) {
+  closeSavedView();
+  // Switch to proper network tab
+  const netMap = { ARK:'ark', L1:'onchain' };
+  const netKey = netMap[net] || 'ark';
+  const btn = document.getElementById('snd-net-btn-' + netKey);
+  selectSendNet(netKey, btn);
+  // Fill address
+  const addrInput = document.getElementById('s-addr');
+  if (addrInput) { addrInput.value = address; addrInput.dispatchEvent(new Event('input')); }
+}
+
+function confirmDeleteFav(address) {
+  if (confirm('Remove this saved address?')) removeFavoriteAddr(address);
+}
+
+// --- Save from send result screen ---
+async function saveFromResult() {
+  const nameInput = document.getElementById('sres-fav-name');
+  const name = nameInput?.value?.trim();
+  if (!name) { showToast('Enter a name'); nameInput?.focus(); return; }
+  const address = document.getElementById('sc-addr-full')?.value?.trim();
+  if (!address) { showToast('No address to save'); return; }
+  const ok = await addFavorite(name, address);
+  if (ok) {
+    showToast('Address saved');
+    const btn = document.getElementById('sres-fav-btn');
+    if (btn) {
+      btn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><polyline points="20 6 9 17 4 12"/></svg> Saved';
+      btn.style.color = 'var(--grn)'; btn.style.borderColor = 'var(--grn)'; btn.style.background = 'var(--grns)';
+      btn.disabled = true;
+    }
+  }
+}
+
+// Show save-fav section on sendresult open (only for ARK/L1)
+const _origOpenSheet = window.openSheet;
+if (typeof _origOpenSheet === 'function') {
+  window.openSheet = function(id) {
+    _origOpenSheet(id);
+    if (id === 'send') {
+      // Reset to form view if Saved tab was active
+      closeSavedView();
+      const arkBtn = document.getElementById('snd-net-btn-ark');
+      if (arkBtn && !document.querySelector('#snd-net-row .qtt.active')) {
+        selectSendNet('ark', arkBtn);
+      }
+    }
+    if (id === 'sendresult') {
+      const addr = document.getElementById('sc-addr-full')?.value?.trim();
+      const net = document.getElementById('sc-network-type')?.value;
+      const sec = document.getElementById('sres-fav-section');
+      const addrEl = document.getElementById('sres-fav-addr');
+      const nameInput = document.getElementById('sres-fav-name');
+      const btn = document.getElementById('sres-fav-btn');
+      // Only show for ARK / L1 (onchain)
+      const canSave = net === 'ark' || net === 'onchain';
+      if (sec) sec.style.display = canSave && addr ? 'block' : 'none';
+      if (addrEl) addrEl.textContent = addr || '';
+      if (nameInput) nameInput.value = '';
+      if (btn) {
+        btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg> Save to Favorites';
+        btn.style.color = 'var(--acc2)'; btn.style.borderColor = 'var(--cb)'; btn.style.background = 'var(--accs)';
+        btn.disabled = false;
+      }
+      // Check if already saved
+      if (addr && canSave) {
+        getFavorites().then(favs => {
+          if (favs.some(f => f.address === addr) && sec) sec.style.display = 'none';
+        });
+      }
+    }
+  };
+}
+
 function doSend() {
   const rawAddress = document.getElementById('s-addr').value.trim();
   const address = rawAddress.replace(/^(ark|bitcoin|lightning):/i, '');
@@ -4373,10 +4575,12 @@ function applyScannedAddress(raw, fieldId) {
   showToast('Address detected ✓');
 }
 function selectSendNet(net, btn) {
+  // Close saved view if open
+  if (_favViewOpen) closeSavedView();
   // Update hidden field and active pill
   const hidden = document.getElementById('snd-net');
   if (hidden) hidden.value = net;
-  ['onchain','lightning','ark'].forEach(n => {
+  ['onchain','lightning','ark','saved'].forEach(n => {
     const b = document.getElementById('snd-net-btn-' + n);
     if (b) b.classList.toggle('active', n === net);
   });
@@ -7252,7 +7456,17 @@ async function arcadeSendBitcoin(address, amount) {
       </div>
       <div id="sres-title" style="font-size:22px;font-weight:900;color:var(--t1);letter-spacing:-.03em;margin-bottom:6px;font-family:var(--f-logo)">Payment Sent</div>
       <div id="sres-amount" style="font-size:16px;font-weight:700;color:var(--t2);margin-bottom:4px">0 SATS</div>
-      <div id="sres-sub" style="font-size:13px;color:var(--t3);margin-bottom:28px">Transaction broadcast successfully</div>
+      <div id="sres-sub" style="font-size:13px;color:var(--t3);margin-bottom:20px">Transaction broadcast successfully</div>
+      <!-- Save to Favorites (only for ARK / L1) -->
+      <div id="sres-fav-section" style="display:none;margin-bottom:20px;padding:16px;background:var(--surf);border:1.5px solid var(--bdr);border-radius:14px;text-align:left">
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--t3);margin-bottom:10px">Save Address</div>
+        <input class="finp" id="sres-fav-name" type="text" placeholder="Name (e.g. Alice)" style="margin-bottom:10px;font-size:13px">
+        <div id="sres-fav-addr" style="font-size:11px;color:var(--t3);word-break:break-all;margin-bottom:12px;font-family:var(--f-mono);line-height:1.5"></div>
+        <button id="sres-fav-btn" onclick="saveFromResult()" style="width:100%;height:40px;border-radius:12px;background:var(--accs);border:1px solid var(--cb);color:var(--acc2);font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          Save to Favorites
+        </button>
+      </div>
       <button class="btnp" onclick="closeSheet('sendresult')" style="max-width:280px;margin:0 auto">Done</button>
     </div>
   </div>
