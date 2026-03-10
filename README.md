@@ -1,7 +1,6 @@
 # ArkON
 
-ArkON is a Vite-based Bitcoin wallet UI for Ark/Arkade flows with Lightning and on-chain support, optimized for deployment on Vercel.
-
+ArkON is a Vite-based Bitcoin wallet UI for Ark/Arkade flows with Lightning and on-chain support
 ## Features
 
 - Ark wallet creation, restore, backup, and password-gated unlock flow
