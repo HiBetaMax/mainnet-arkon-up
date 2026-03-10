@@ -533,10 +533,10 @@ select.finp{cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg xmlns
 .main-actions{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:0 20px 22px}
 .main-btn{
   display:flex;align-items:center;justify-content:center;gap:10px;
-  padding:14px 20px;border-radius:var(--r-card);
+  width:100%;padding:14px 20px;border-radius:var(--r-card);
   border:none;cursor:pointer;font-size:14px;font-weight:700;
   transition:all .15s var(--ease);
-  letter-spacing:.01em;
+  letter-spacing:.01em;text-align:center;
 }
 .main-btn:active{transform:scale(.97)}
 .main-btn.send{background:var(--acc);color:#fff;box-shadow:var(--shb)}
@@ -1642,6 +1642,13 @@ body.kb-open .sheet{
         </button>
       </div>
       <input type="hidden" id="snd-net" value="ark">
+      <!-- Favorites -->
+      <div id="fav-bar" style="display:none;margin-bottom:12px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--t3)">Favorites</div>
+        </div>
+        <div id="fav-pills" style="display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch"></div>
+      </div>
       <!-- Address row with QR scan + upload buttons -->
       <div class="fld">
         <label class="flbl" id="snd-addr-lbl">Ark Address</label>
@@ -3536,6 +3543,129 @@ function resetLnInvoiceForm() {
 /* ═══════════════════════════════════════════
    SEND
 ═══════════════════════════════════════════ */
+// ═══════════════════════════════════════════
+//    FAVORITES
+// ═══════════════════════════════════════════
+const FAV_KEY = 'arkon_favorites_v1';
+
+function getFavorites() {
+  try { return JSON.parse(localStorage.getItem(FAV_KEY) || '[]'); } catch { return []; }
+}
+
+function saveFavorites(favs) {
+  localStorage.setItem(FAV_KEY, JSON.stringify(favs));
+}
+
+function detectNetworkLabel(address) {
+  const type = window._detectAddressType ? window._detectAddressType(address) : 'unknown';
+  if (type === 'lightning') return 'LN';
+  if (type === 'bitcoin') return 'L1';
+  if (type === 'ark') return 'ARK';
+  // Heuristic fallback
+  if (/^(lnbc|lntb|lnurl)/i.test(address)) return 'LN';
+  if (/^(bc1|1|3|tb1)/i.test(address)) return 'L1';
+  return 'ARK';
+}
+
+function addFavorite(name, address) {
+  const favs = getFavorites();
+  // Avoid duplicates by address
+  if (favs.some(f => f.address === address)) {
+    showToast('Already in favorites');
+    return false;
+  }
+  const net = detectNetworkLabel(address);
+  favs.push({ name: name.trim(), address, net, ts: Date.now() });
+  saveFavorites(favs);
+  return true;
+}
+
+function removeFavorite(address) {
+  const favs = getFavorites().filter(f => f.address !== address);
+  saveFavorites(favs);
+  renderFavBar();
+}
+
+function renderFavBar() {
+  const bar = document.getElementById('fav-bar');
+  const pills = document.getElementById('fav-pills');
+  if (!bar || !pills) return;
+  const favs = getFavorites();
+  if (favs.length === 0) { bar.style.display = 'none'; return; }
+  bar.style.display = 'block';
+  pills.innerHTML = favs.map(f => {
+    const netColor = { ARK:'var(--acc2)', LN:'var(--amb)', L1:'var(--grn)' }[f.net] || 'var(--t2)';
+    return `<button onclick="selectFavorite('${f.address.replace(/'/g, "\\'")}')" style="flex-shrink:0;display:flex;align-items:center;gap:6px;padding:8px 12px;border-radius:var(--r-pill);background:var(--surf);border:1.5px solid var(--bdr);cursor:pointer;transition:all .15s">
+      <span style="font-size:9px;font-weight:800;color:${netColor};background:${netColor}18;padding:2px 5px;border-radius:4px;letter-spacing:.04em">${f.net}</span>
+      <span style="font-size:12px;font-weight:600;color:var(--t1);white-space:nowrap">${esc(f.name)}</span>
+      <span onclick="event.stopPropagation();removeFavorite('${f.address.replace(/'/g, "\\'")}')" style="margin-left:2px;font-size:14px;color:var(--t3);cursor:pointer;line-height:1">&times;</span>
+    </button>`;
+  }).join('');
+}
+
+function selectFavorite(address) {
+  const addrInput = document.getElementById('s-addr');
+  if (addrInput) {
+    addrInput.value = address;
+    addrInput.dispatchEvent(new Event('input'));
+  }
+}
+
+function promptAddFavorite() {
+  const address = document.getElementById('sc-addr-full')?.value?.trim();
+  if (!address) { showToast('No address to save'); return; }
+  // Check if already saved
+  const favs = getFavorites();
+  if (favs.some(f => f.address === address)) {
+    showToast('Already in favorites');
+    return;
+  }
+  const name = window.prompt('Name for this favorite:');
+  if (name === null) return;
+  const trimmed = name.trim();
+  if (!trimmed) { showToast('Name is required'); return; }
+  if (addFavorite(trimmed, address)) {
+    showToast('Saved to favorites');
+    // Update button to show it's saved
+    const btn = document.getElementById('sc-fav-btn');
+    if (btn) {
+      btn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg> Saved';
+      btn.style.color = 'var(--grn)';
+      btn.style.borderColor = 'var(--grn)';
+      btn.style.background = 'var(--grns)';
+    }
+    renderFavBar();
+  }
+}
+
+// Render on sheet open
+const _origOpenSheet = window.openSheet;
+if (typeof _origOpenSheet === 'function') {
+  window.openSheet = function(id) {
+    _origOpenSheet(id);
+    if (id === 'send') renderFavBar();
+    if (id === 'sendconfirm') {
+      // Reset fav button state
+      const btn = document.getElementById('sc-fav-btn');
+      if (btn) {
+        const addr = document.getElementById('sc-addr-full')?.value?.trim();
+        const already = addr && getFavorites().some(f => f.address === addr);
+        if (already) {
+          btn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg> Saved';
+          btn.style.color = 'var(--grn)';
+          btn.style.borderColor = 'var(--grn)';
+          btn.style.background = 'var(--grns)';
+        } else {
+          btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg> Save to Favorites';
+          btn.style.color = 'var(--acc2)';
+          btn.style.borderColor = 'var(--cb)';
+          btn.style.background = 'var(--accs)';
+        }
+      }
+    }
+  };
+}
+
 function doSend() {
   const rawAddress = document.getElementById('s-addr').value.trim();
   const address = rawAddress.replace(/^(ark|bitcoin|lightning):/i, '');
@@ -7216,6 +7346,14 @@ async function arcadeSendBitcoin(address, amount) {
           <span style="font-size:13px;font-weight:600;color:var(--t1)">Total deducted</span>
           <span id="sc-total-display" style="font-size:16px;font-weight:900;color:var(--t1);letter-spacing:-.03em;font-family:var(--f)">0 SATS</span>
         </div>
+      </div>
+
+      <!-- Save to Favorites -->
+      <div id="sc-fav-row" style="padding:0 20px 12px">
+        <button id="sc-fav-btn" onclick="promptAddFavorite()" style="width:100%;height:40px;border-radius:12px;background:var(--accs);border:1px solid var(--cb);color:var(--acc2);font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          Save to Favorites
+        </button>
       </div>
 
       <!-- Hidden inputs carry data -->
