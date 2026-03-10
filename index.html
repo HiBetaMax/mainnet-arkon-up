@@ -3644,23 +3644,34 @@ async function renderFavList() {
     return;
   }
   if (empty) empty.style.display = 'none';
-  items.innerHTML = favs.map(f => {
+  items.innerHTML = favs.map((f, i) => {
     const netColor = { ARK:'var(--acc2)', L1:'var(--grn)' }[f.net] || 'var(--t2)';
     const safeAddr = esc(f.address);
     const safeName = esc(f.name);
-    return `<div style="background:var(--surf);border:1.5px solid var(--bdr);border-radius:14px;padding:14px 16px;cursor:pointer" onclick="useFavorite('${f.address.replace(/'/g,"\\'")}','${f.net}')">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
-        <div style="display:flex;align-items:center;gap:8px">
+    const uid = 'fav-addr-' + i;
+    return `<div style="background:var(--surf);border:1.5px solid var(--bdr);border-radius:14px;padding:14px 16px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+        <div style="display:flex;align-items:center;gap:8px;cursor:pointer;flex:1" onclick="useFavorite('${f.address.replace(/'/g,"\\'")}','${f.net}')">
           <span style="font-size:9px;font-weight:800;color:${netColor};background:${netColor}18;padding:3px 6px;border-radius:5px;letter-spacing:.04em">${f.net}</span>
           <span style="font-size:14px;font-weight:700;color:var(--t1)">${safeName}</span>
         </div>
-        <button onclick="event.stopPropagation();confirmDeleteFav('${f.address.replace(/'/g,"\\'")}')" style="background:none;border:none;cursor:pointer;padding:4px;color:var(--t3)" title="Delete">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
-        </button>
+        <div style="display:flex;align-items:center;gap:2px">
+          <button onclick="event.stopPropagation();toggleFavAddr('${uid}')" style="background:none;border:none;cursor:pointer;padding:4px;color:var(--t3)" title="Show address">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+          <button onclick="event.stopPropagation();confirmDeleteFav('${f.address.replace(/'/g,"\\'")}')" style="background:none;border:none;cursor:pointer;padding:4px;color:var(--t3)" title="Delete">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+          </button>
+        </div>
       </div>
-      <div style="font-size:11px;color:var(--t3);font-family:var(--f-mono);word-break:break-all;line-height:1.5">${safeAddr}</div>
+      <div id="${uid}" style="display:none;font-size:11px;color:var(--t3);font-family:var(--f-mono);word-break:break-all;line-height:1.5;margin-top:6px;padding:8px 10px;background:var(--bg3);border-radius:8px">${safeAddr}</div>
     </div>`;
   }).join('');
+}
+
+function toggleFavAddr(id) {
+  const el = document.getElementById(id);
+  if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
 }
 
 function useFavorite(address, net) {
@@ -3735,6 +3746,7 @@ if (typeof _origOpenSheet === 'function') {
         });
       }
     }
+    if (id === 'invhistory') renderInvHistory();
   };
 }
 
@@ -5485,6 +5497,30 @@ let invItems = [];
 let invCurrency = 'USD'; // invoice-specific currency, independent of wallet display
 let invColor = '#0e3a8a'; // invoice accent color
 
+const INV_CO_KEY = 'arkon_inv_company';
+function saveInvCompany() {
+  const data = {
+    name:  document.getElementById('inv-from-name').value,
+    addr:  document.getElementById('inv-from-addr').value,
+    email: document.getElementById('inv-from-email').value,
+    phone: document.getElementById('inv-from-phone').value,
+  };
+  localStorage.setItem(INV_CO_KEY, JSON.stringify(data));
+  showToast('Company details saved');
+  const btn = document.getElementById('inv-save-co-btn');
+  if (btn) { btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><polyline points="20 6 9 17 4 12"/></svg> Saved'; btn.style.color = 'var(--grn)'; btn.style.borderColor = 'var(--grn)'; }
+}
+function loadInvCompany() {
+  try {
+    const d = JSON.parse(localStorage.getItem(INV_CO_KEY));
+    if (!d) return;
+    if (d.name)  document.getElementById('inv-from-name').value = d.name;
+    if (d.addr)  document.getElementById('inv-from-addr').value = d.addr;
+    if (d.email) document.getElementById('inv-from-email').value = d.email;
+    if (d.phone) document.getElementById('inv-from-phone').value = d.phone;
+  } catch {}
+}
+
 function openInvoice() {
   // Seed today's date and a default invoice number
   const today = new Date();
@@ -5497,6 +5533,11 @@ function openInvoice() {
   document.getElementById('inv-num').value = n;
   // Pre-fill Ark address
   document.getElementById('inv-pay-addr').value = ARK_ADDR;
+  // Load saved company details
+  loadInvCompany();
+  // Reset save button state
+  const coBtn = document.getElementById('inv-save-co-btn');
+  if (coBtn) { coBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Save Company Details'; coBtn.style.color = 'var(--acc2)'; coBtn.style.borderColor = 'var(--acc2)'; }
   // Reset to step 1
   invItems = [{ desc:'', qty:1, price:'' }];
   renderInvItems();
@@ -5641,8 +5682,9 @@ async function generateInvoiceStep() {
     }
   }
 
-  // Reset button, advance to step 5
+  // Reset button, save to history, advance to step 5
   if (btn) { btn.disabled = false; btn.style.opacity = '1'; btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:15px;height:15px;display:inline;margin-right:6px"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> Generate Invoice →'; }
+  addInvToHistory();
   goInvStep(5);
 }
 
@@ -5956,6 +5998,92 @@ function copyInvoiceText() {
   const text = `INVOICE ${num}\nFrom: ${from}\nTo: ${to}\nDue: ${due}\nTotal: ${total.toFixed(2)}\nPay via: ${invPayMethod.toUpperCase()}\n${document.getElementById('inv-pay-addr').value}`;
   navigator.clipboard.writeText(text).catch(()=>{});
   showToast('Invoice copied as text');
+}
+
+// ═══════════════════════════════════════════
+//    INVOICE HISTORY
+// ═══════════════════════════════════════════
+const INV_HIST_KEY = 'arkon_inv_history';
+function getInvHistory() {
+  try { return JSON.parse(localStorage.getItem(INV_HIST_KEY) || '[]'); } catch { return []; }
+}
+function saveInvHistory(list) {
+  localStorage.setItem(INV_HIST_KEY, JSON.stringify(list));
+}
+function addInvToHistory() {
+  const company = document.getElementById('inv-to-name').value || 'Unknown';
+  const num     = document.getElementById('inv-num').value || 'INV-???';
+  const date    = document.getElementById('inv-date').value || new Date().toISOString().split('T')[0];
+  const due     = document.getElementById('inv-due').value || '';
+  const total   = invItems.reduce((s, it) => s + ((+it.price || 0) * (it.qty || 1)), 0);
+  const cur     = invCurrency || 'USD';
+  const entry = { id: Date.now().toString(36), company, num, amount: total, currency: cur, dateCreated: date, dateDue: due, datePaid: '', status: 'unpaid' };
+  const hist = getInvHistory();
+  hist.unshift(entry);
+  saveInvHistory(hist);
+}
+function renderInvHistory() {
+  const list = document.getElementById('inv-hist-list');
+  const empty = document.getElementById('inv-hist-empty');
+  if (!list) return;
+  const hist = getInvHistory();
+  if (hist.length === 0) {
+    list.innerHTML = '';
+    if (empty) empty.style.display = 'block';
+    return;
+  }
+  if (empty) empty.style.display = 'none';
+  list.innerHTML = hist.map(h => {
+    const isPaid = h.status === 'paid';
+    const statusColor = isPaid ? 'var(--grn)' : 'var(--amb)';
+    const statusBg = isPaid ? 'var(--grns)' : 'var(--ambs)';
+    const statusText = isPaid ? 'Paid' : 'Unpaid';
+    const fmtAmt = ['SATS','BTC'].includes(h.currency) ? h.amount.toLocaleString() + ' ' + h.currency : h.currency + ' ' + h.amount.toFixed(2);
+    const fmtDate = (d) => d ? new Date(d + 'T00:00:00').toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' }) : '—';
+    return `<div style="background:var(--surf);border:1.5px solid var(--bdr);border-radius:14px;padding:14px 16px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <div>
+          <div style="font-size:14px;font-weight:700;color:var(--t1)">${esc(h.company)}</div>
+          <div style="font-size:11px;color:var(--t3);margin-top:2px">${esc(h.num)}</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:14px;font-weight:800;color:var(--t1)">${fmtAmt}</div>
+          <button onclick="toggleInvPaid('${h.id}')" style="margin-top:3px;font-size:10px;font-weight:700;padding:3px 8px;border-radius:6px;border:none;cursor:pointer;background:${statusBg};color:${statusColor}">${statusText}</button>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;font-size:10px;color:var(--t3)">
+        <div><span style="font-weight:600;text-transform:uppercase;letter-spacing:.04em">Created</span><br>${fmtDate(h.dateCreated)}</div>
+        <div><span style="font-weight:600;text-transform:uppercase;letter-spacing:.04em">Due</span><br>${fmtDate(h.dateDue)}</div>
+        <div><span style="font-weight:600;text-transform:uppercase;letter-spacing:.04em">Paid</span><br>${h.datePaid ? fmtDate(h.datePaid) : '—'}</div>
+      </div>
+      <div style="display:flex;justify-content:flex-end;margin-top:8px">
+        <button onclick="deleteInvHist('${h.id}')" style="background:none;border:none;cursor:pointer;padding:4px;color:var(--t3);font-size:10px;display:flex;align-items:center;gap:3px">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+          Delete
+        </button>
+      </div>
+    </div>`;
+  }).join('');
+}
+function toggleInvPaid(id) {
+  const hist = getInvHistory();
+  const entry = hist.find(h => h.id === id);
+  if (!entry) return;
+  if (entry.status === 'paid') {
+    entry.status = 'unpaid';
+    entry.datePaid = '';
+  } else {
+    entry.status = 'paid';
+    entry.datePaid = new Date().toISOString().split('T')[0];
+  }
+  saveInvHistory(hist);
+  renderInvHistory();
+}
+function deleteInvHist(id) {
+  if (!confirm('Delete this invoice from history?')) return;
+  const hist = getInvHistory().filter(h => h.id !== id);
+  saveInvHistory(hist);
+  renderInvHistory();
 }
 /* ═══════════════════════════════════════════
    MYSTERY BOX — ~70% RTP (30% house edge)
@@ -7231,7 +7359,13 @@ async function arcadeSendBitcoin(address, amount) {
         <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--t3);margin-bottom:2px">Bitcoin Invoice</div>
         <span class="sheet-title" id="inv-sheet-title">New Invoice</span>
       </div>
-      <button class="sheet-close" onclick="closeSheet('invoice')">✕</button>
+      <div style="display:flex;align-items:center;gap:8px">
+        <button onclick="openSheet('invhistory')" style="background:var(--surf);border:1.5px solid var(--bdr);border-radius:10px;padding:6px 10px;cursor:pointer;display:flex;align-items:center;gap:4px;color:var(--t2);font-size:11px;font-weight:600">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          History
+        </button>
+        <button class="sheet-close" onclick="closeSheet('invoice')">✕</button>
+      </div>
     </div>
     <div class="sheet-body">
 
@@ -7251,6 +7385,10 @@ async function arcadeSendBitcoin(address, amount) {
         <div class="fld"><label class="flbl">Address</label><input class="finp" id="inv-from-addr" placeholder="123 Bitcoin Street, London"></div>
         <div class="fld"><label class="flbl">Email</label><input class="finp" id="inv-from-email" placeholder="hello@arkadelabs.com" type="email"></div>
         <div class="fld"><label class="flbl">Phone (optional)</label><input class="finp" id="inv-from-phone" placeholder="+44 7000 000000" type="tel"></div>
+        <button class="btns" id="inv-save-co-btn" onclick="saveInvCompany()" style="margin-bottom:10px;display:flex;align-items:center;justify-content:center;gap:6px;color:var(--acc2);border-color:var(--acc2)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+          Save Company Details
+        </button>
         <button class="btnp" onclick="goInvStep(2)">Next — Bill To →</button>
       </div>
 
@@ -7378,8 +7516,27 @@ async function arcadeSendBitcoin(address, amount) {
   </div>
 </div>
 
-
-
+<!-- ══════════════════════════════════════
+     INVOICE HISTORY SHEET
+══════════════════════════════════════ -->
+<div class="overlay" id="sheet-invhistory">
+  <div class="sheet" style="max-height:96vh">
+    <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
+    <div class="sheet-head">
+      <span class="sheet-title">Invoice History</span>
+      <button class="sheet-close" onclick="closeSheet('invhistory')">✕</button>
+    </div>
+    <div class="sheet-body">
+      <div id="inv-hist-list" style="display:flex;flex-direction:column;gap:10px"></div>
+      <div id="inv-hist-empty" style="display:none;text-align:center;padding:40px 16px;color:var(--t3)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width:40px;height:40px;margin:0 auto 12px;opacity:.4"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        <div style="font-size:14px;font-weight:600;margin-bottom:4px">No invoices yet</div>
+        <div style="font-size:12px;opacity:.7">Generated invoices will appear here</div>
+      </div>
+      <button class="btns" onclick="closeSheet('invhistory')" style="margin-top:12px">Close</button>
+    </div>
+  </div>
+</div>
 
 <!-- ══════════════════════════════════════
      SEND CONFIRM SHEET
