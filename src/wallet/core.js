@@ -251,6 +251,22 @@ export async function sendBitcoin({ address, amount }) {
   return await getWallet().sendBitcoin({ address: cleanAddress, amount: satoshis })
 }
 
+/**
+ * Multi-output Ark send — all recipients in ONE round.
+ * @param {Array<{address: string, amount: number}>} recipients
+ * @returns {Promise<string>} single arkTxid for the entire batch
+ */
+export async function sendBatch(recipients) {
+  const cleaned = recipients.map(r => {
+    const address = r.address.replace(/^(ark|bitcoin|lightning):/i, '')
+    const amount = Math.floor(typeof r.amount === 'bigint' ? Number(r.amount) : Number(r.amount))
+    if (!address) throw new Error('Missing address in batch recipient')
+    if (!Number.isFinite(amount) || amount <= 0) throw new Error('Invalid amount for ' + address)
+    return { address, amount }
+  })
+  return await getWallet().send(...cleaned)
+}
+
 export async function onboard(eventCallback) {
   const wallet = getWallet()
   const { fees } = await wallet.arkProvider.getInfo()
