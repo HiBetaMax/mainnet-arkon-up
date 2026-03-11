@@ -5597,12 +5597,13 @@ function renderInvContacts() {
   const list = document.getElementById('inv-contacts-list');
   const empty = document.getElementById('inv-contacts-empty');
   if (!list) return;
-  const contacts = getInvContacts();
+  const contacts = getInvContacts().sort((a, b) => a.name.localeCompare(b.name));
   if (contacts.length === 0) { list.innerHTML = ''; if (empty) empty.style.display = 'block'; return; }
   if (empty) empty.style.display = 'none';
   list.innerHTML = contacts.map(c => {
     const typeColor = c.type === 'from' ? 'var(--acc2)' : 'var(--grn)';
     const typeLabel = c.type === 'from' ? 'Company' : 'Client';
+    const eid = 'cedit-' + c.ts;
     return `<div style="background:var(--surf);border:1.5px solid var(--bdr);border-radius:14px;padding:14px 16px">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
         <div style="display:flex;align-items:center;gap:8px">
@@ -5610,7 +5611,7 @@ function renderInvContacts() {
           <span style="font-size:14px;font-weight:700;color:var(--t1)">${esc(c.name)}</span>
         </div>
         <div style="display:flex;align-items:center;gap:4px">
-          <button onclick="editInvContact('${c.ts}')" style="background:none;border:none;cursor:pointer;padding:4px;color:var(--t3)" title="Edit">
+          <button onclick="toggleEditContact('${c.ts}')" style="background:none;border:none;cursor:pointer;padding:4px;color:var(--t3)" title="Edit">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
           </button>
           <button onclick="deleteInvContact('${c.ts}')" style="background:none;border:none;cursor:pointer;padding:4px;color:var(--t3)" title="Delete">
@@ -5621,27 +5622,31 @@ function renderInvContacts() {
       ${c.addr ? '<div style="font-size:11px;color:var(--t3);margin-bottom:2px">' + esc(c.addr) + '</div>' : ''}
       ${c.email ? '<div style="font-size:11px;color:var(--t3);margin-bottom:2px">' + esc(c.email) + '</div>' : ''}
       ${c.phone ? '<div style="font-size:11px;color:var(--t3)">' + esc(c.phone) + '</div>' : ''}
+      <div id="${eid}" style="display:none;margin-top:10px;padding-top:10px;border-top:1px solid var(--bdr)">
+        <div class="fld" style="margin-bottom:8px"><label class="flbl" style="font-size:10px">Name</label><input class="finp" id="${eid}-name" value="${esc(c.name)}" style="font-size:12px"></div>
+        <div class="fld" style="margin-bottom:8px"><label class="flbl" style="font-size:10px">Address</label><input class="finp" id="${eid}-addr" value="${esc(c.addr || '')}" style="font-size:12px"></div>
+        <div class="fld" style="margin-bottom:8px"><label class="flbl" style="font-size:10px">Email</label><input class="finp" id="${eid}-email" value="${esc(c.email || '')}" style="font-size:12px"></div>
+        ${c.type === 'from' ? '<div class="fld" style="margin-bottom:8px"><label class="flbl" style="font-size:10px">Phone</label><input class="finp" id="' + eid + '-phone" value="' + esc(c.phone || '') + '" style="font-size:12px"></div>' : ''}
+        <button onclick="saveEditContact('${c.ts}')" style="width:100%;height:36px;border-radius:10px;background:var(--acc2);color:#fff;border:none;font-size:12px;font-weight:700;cursor:pointer">Save</button>
+      </div>
     </div>`;
   }).join('');
 }
 
-function editInvContact(ts) {
+function toggleEditContact(ts) {
+  const el = document.getElementById('cedit-' + ts);
+  if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
+function saveEditContact(ts) {
   const contacts = getInvContacts();
   const c = contacts.find(x => String(x.ts) === String(ts));
   if (!c) return;
-  const name = prompt('Name:', c.name);
-  if (name === null) return;
-  const addr = prompt('Address:', c.addr || '');
-  if (addr === null) return;
-  const email = prompt('Email:', c.email || '');
-  if (email === null) return;
-  c.name = name.trim() || c.name;
-  c.addr = addr;
-  c.email = email;
-  if (c.type === 'from') {
-    const phone = prompt('Phone:', c.phone || '');
-    if (phone !== null) c.phone = phone;
-  }
+  const eid = 'cedit-' + ts;
+  c.name = (document.getElementById(eid + '-name')?.value || '').trim() || c.name;
+  c.addr = document.getElementById(eid + '-addr')?.value || '';
+  c.email = document.getElementById(eid + '-email')?.value || '';
+  if (c.type === 'from') c.phone = document.getElementById(eid + '-phone')?.value || '';
   saveInvContacts(contacts);
   renderInvContacts();
   showToast('Contact updated');
@@ -5693,6 +5698,11 @@ function openInvoice() {
   document.getElementById('inv-num').value = n;
   // Pre-fill Ark address
   document.getElementById('inv-pay-addr').value = ARK_ADDR;
+  // Clear client fields (fresh form after previous generation)
+  document.getElementById('inv-to-name').value = '';
+  document.getElementById('inv-to-addr').value = '';
+  document.getElementById('inv-to-email').value = '';
+  document.getElementById('inv-notes').value = '';
   // Load saved company details
   loadInvCompany();
   // Reset save button states
@@ -6152,6 +6162,20 @@ function shareInvoice() {
   setTimeout(() => URL.revokeObjectURL(url), 5000);
 }
 
+function shareInvoiceNative() {
+  const num = document.getElementById('inv-num').value || 'INV-001';
+  const to  = document.getElementById('inv-to-name').value || 'Client';
+  const total = invItems.reduce((s,it)=>s+((+it.price||0)*(it.qty||1)),0);
+  const cur = invCurrency || 'USD';
+  const fmtAmt = cur === 'SATS' ? Math.round(total).toLocaleString() + ' SATS' : (cur === 'BTC' ? '₿ ' + total.toFixed(8) : ({ USD:'$', EUR:'€', CHF:'CHF ' }[cur]||'$') + total.toFixed(2));
+  const text = `Invoice ${num} for ${to} — ${fmtAmt}\nDue: ${document.getElementById('inv-due').value || '—'}\nPay via: ${invPayMethod.toUpperCase()}\n${document.getElementById('inv-pay-addr').value}`;
+  if (navigator.share) {
+    navigator.share({ title: 'Invoice ' + num, text: text }).catch(()=>{});
+  } else {
+    navigator.clipboard.writeText(text).then(()=> showToast('Invoice details copied')).catch(()=>{});
+  }
+}
+
 function copyInvoiceText() {
   const from = document.getElementById('inv-from-name').value || 'Your Company';
   const to   = document.getElementById('inv-to-name').value   || 'Client';
@@ -6223,6 +6247,10 @@ function renderInvHistory() {
           ${isPaid ? `<button onclick="setInvPaidDate('${h.id}')" style="background:none;border:none;color:var(--acc2);cursor:pointer;font-size:9px;font-weight:600;padding:0;margin-left:2px">edit</button>` : ''}
         </div>
       </div>
+      <div id="hpaid-${h.id}" style="display:none;align-items:center;gap:8px;margin-top:8px;padding:8px 0;border-top:1px solid var(--bdr)">
+        <input type="date" id="hpaid-input-${h.id}" value="${h.datePaid || new Date().toISOString().split('T')[0]}" style="flex:1;padding:6px 10px;border-radius:8px;border:1.5px solid var(--bdr);background:var(--surf);color:var(--t1);font-size:12px;font-family:inherit">
+        <button onclick="confirmPaidDate('${h.id}')" style="padding:6px 12px;border-radius:8px;border:none;background:var(--grn);color:#fff;font-size:11px;font-weight:700;cursor:pointer">Confirm</button>
+      </div>
       <div style="display:flex;justify-content:flex-end;margin-top:8px;gap:8px">
         <button onclick="deleteInvHist('${h.id}')" style="background:none;border:none;cursor:pointer;padding:4px;color:var(--t3);font-size:10px;display:flex;align-items:center;gap:3px">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
@@ -6239,26 +6267,28 @@ function toggleInvPaid(id) {
   if (entry.status === 'paid') {
     entry.status = 'unpaid';
     entry.datePaid = '';
+    saveInvHistory(hist);
+    renderInvHistory();
   } else {
-    const today = new Date().toISOString().split('T')[0];
-    const dateStr = prompt('Date paid (YYYY-MM-DD):', today);
-    if (dateStr === null) return;
-    entry.status = 'paid';
-    entry.datePaid = dateStr.trim() || today;
+    // Show inline date picker
+    const el = document.getElementById('hpaid-' + id);
+    if (el) el.style.display = el.style.display === 'none' ? 'flex' : 'none';
   }
+}
+function confirmPaidDate(id) {
+  const input = document.getElementById('hpaid-input-' + id);
+  const dateStr = input?.value || new Date().toISOString().split('T')[0];
+  const hist = getInvHistory();
+  const entry = hist.find(h => h.id === id);
+  if (!entry) return;
+  entry.status = 'paid';
+  entry.datePaid = dateStr;
   saveInvHistory(hist);
   renderInvHistory();
 }
 function setInvPaidDate(id) {
-  const hist = getInvHistory();
-  const entry = hist.find(h => h.id === id);
-  if (!entry) return;
-  const dateStr = prompt('Date paid (YYYY-MM-DD):', entry.datePaid || '');
-  if (dateStr === null) return;
-  entry.datePaid = dateStr.trim();
-  if (!entry.datePaid) { entry.status = 'unpaid'; }
-  saveInvHistory(hist);
-  renderInvHistory();
+  const el = document.getElementById('hpaid-' + id);
+  if (el) el.style.display = el.style.display === 'none' ? 'flex' : 'none';
 }
 function deleteInvHist(id) {
   if (!confirm('Delete this invoice from history?')) return;
@@ -7706,6 +7736,10 @@ async function arcadeSendBitcoin(address, amount) {
         <button class="btnp" style="background:var(--grn);box-shadow:0 6px 20px rgba(48,208,104,.35)" onclick="shareInvoice()">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:15px;height:15px;display:inline;margin-right:6px"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
           Export as PDF
+        </button>
+        <button class="btnp" style="background:var(--acc2);box-shadow:0 6px 20px rgba(14,58,138,.25)" onclick="shareInvoiceNative()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:15px;height:15px;display:inline;margin-right:6px"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+          Share Invoice
         </button>
         <button class="btns" onclick="copyInvoiceText()">Copy as Text</button>
         <button class="btns" onclick="goInvStep(4)">← Back</button>
