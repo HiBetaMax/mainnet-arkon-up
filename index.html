@@ -6324,7 +6324,7 @@ function openBatchSend() {
   const q = getBatchQueue();
   let changed = false;
   q.forEach(item => {
-    if (item.status === 'sending') { item.status = 'pending'; changed = true; }
+    if (item.status === 'sending' || item.status === 'waiting') { item.status = 'pending'; changed = true; }
   });
   if (changed) saveBatchQueue(q);
   renderBatchQueue();
@@ -6389,7 +6389,7 @@ function renderBatchQueue() {
   if (actions) actions.style.display = 'block';
 
   // Summary counts
-  const pending = q.filter(i => i.status === 'pending').length;
+  const pending = q.filter(i => i.status === 'pending' || i.status === 'waiting').length;
   const sending = q.filter(i => i.status === 'sending').length;
   const sent = q.filter(i => i.status === 'sent').length;
   const failed = q.filter(i => i.status === 'failed').length;
@@ -6413,9 +6413,9 @@ function renderBatchQueue() {
 
   // Render cards
   list.innerHTML = q.map(item => {
-    const statusColors = { pending: 'var(--t3)', sending: 'var(--acc2)', sent: 'var(--grn)', failed: 'var(--red)' };
-    const statusBgs = { pending: 'var(--bg3)', sending: 'var(--accs)', sent: 'var(--grns)', failed: 'rgba(255,77,77,.12)' };
-    const statusLabels = { pending: 'Pending', sending: 'Sending…', sent: 'Sent', failed: 'Failed' };
+    const statusColors = { pending: 'var(--t3)', waiting: 'var(--amb)', sending: 'var(--acc2)', sent: 'var(--grn)', failed: 'var(--red)' };
+    const statusBgs = { pending: 'var(--bg3)', waiting: 'var(--ambs)', sending: 'var(--accs)', sent: 'var(--grns)', failed: 'rgba(255,77,77,.12)' };
+    const statusLabels = { pending: 'Pending', waiting: 'Waiting…', sending: 'Sending…', sent: 'Sent', failed: 'Failed' };
     const sc = statusColors[item.status] || 'var(--t3)';
     const sb = statusBgs[item.status] || 'var(--bg3)';
     const sl = statusLabels[item.status] || item.status;
@@ -6432,10 +6432,12 @@ function renderBatchQueue() {
           <span style="display:inline-block;margin-top:3px;font-size:9px;font-weight:700;padding:2px 8px;border-radius:6px;background:${sb};color:${sc}">${sl}</span>
         </div>
       </div>
-      ${item.status === 'pending' || item.status === 'failed' ? `<div style="display:flex;justify-content:flex-end;margin-top:6px"><button onclick="removeBatchItem('${item.id}')" style="background:none;border:none;cursor:pointer;padding:2px 4px;color:var(--t3);font-size:10px;display:flex;align-items:center;gap:3px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:11px;height:11px"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg> Remove</button></div>` : ''}
+      ${item.status === 'pending' || item.status === 'failed' || item.status === 'waiting' ? `<div style="display:flex;justify-content:flex-end;margin-top:6px"><button onclick="removeBatchItem('${item.id}')" style="background:none;border:none;cursor:pointer;padding:2px 4px;color:var(--t3);font-size:10px;display:flex;align-items:center;gap:3px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:11px;height:11px"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg> Remove</button></div>` : ''}
     </div>`;
   }).join('');
 }
+
+const BATCH_COOLDOWN_MS = 3000; // wait between sends so Ark round settles
 
 async function startBatchSend() {
   const q = getBatchQueue();
@@ -6444,7 +6446,17 @@ async function startBatchSend() {
   if (!confirm('Send ' + pending.length + ' Ark payment' + (pending.length !== 1 ? 's' : '') + ' totalling ' + pending.reduce((s, i) => s + i.amount, 0).toLocaleString() + ' SATS?')) return;
   _batchRunning = true;
   renderBatchQueue();
+  let isFirst = true;
   for (const item of pending) {
+    if (!_batchRunning) break;
+    // Wait for previous Ark round to fully settle before next send
+    if (!isFirst) {
+      item.status = 'waiting';
+      saveBatchQueue(q);
+      renderBatchQueue();
+      await new Promise(r => setTimeout(r, BATCH_COOLDOWN_MS));
+    }
+    isFirst = false;
     if (!_batchRunning) break;
     item.status = 'sending';
     saveBatchQueue(q);
