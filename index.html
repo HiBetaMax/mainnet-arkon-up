@@ -2294,6 +2294,8 @@ function generateAndShowNewKey() {
 function splashCopyKey() {
   if (!_newPrivKey) return;
   navigator.clipboard.writeText(_newPrivKey).then(() => {
+    // SECURITY: auto-clear clipboard after 30s so key doesn't persist
+    setTimeout(() => { navigator.clipboard.writeText('').catch(() => {}); }, 30000);
     const confirm = document.getElementById('sp-copy-confirm');
     if (confirm) {
       confirm.style.opacity = '1';
@@ -2344,6 +2346,7 @@ async function splashFinishCreate() {
     // breaks in the production single-file build where /src/wallet.js no longer exists.
     if (typeof window._restoreFromPrivKey !== 'function') throw new Error('Wallet not ready');
     const ok = await window._restoreFromPrivKey(_newPrivKey);
+    _newPrivKey = null; // SECURITY: wipe raw key from memory immediately
     if (!ok) throw new Error('Key storage failed');
   } catch (e) {
     console.error('[ArkON] Failed to save key securely:', e);
@@ -3561,19 +3564,55 @@ function resetLnInvoiceForm() {
 //    SAVED ADDRESSES (Encrypted Address Book)
 // ═══════════════════════════════════════════
 const FAV_STORE = 'arkon_addrbook_v2';
-const FAV_KSTORE = 'arkon_addrbook_k';
+const FAV_IDB_DB = 'arkon_fav_keys';
+const FAV_IDB_STORE = 'keys';
+const FAV_IDB_ID = 'addrbook_aes';
 
-// --- Crypto helpers (AES-GCM via SubtleCrypto) ---
+// --- Crypto helpers (AES-GCM via SubtleCrypto + IndexedDB non-extractable key) ---
+function _favOpenIDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(FAV_IDB_DB, 1);
+    req.onupgradeneeded = e => e.target.result.createObjectStore(FAV_IDB_STORE);
+    req.onsuccess = e => resolve(e.target.result);
+    req.onerror = e => reject(e.target.error);
+  });
+}
+
 async function _favGetKey() {
   try {
-    let raw = localStorage.getItem(FAV_KSTORE);
-    if (raw) {
-      const buf = Uint8Array.from(atob(raw), c => c.charCodeAt(0));
-      return crypto.subtle.importKey('raw', buf, 'AES-GCM', false, ['encrypt','decrypt']);
+    const db = await _favOpenIDB();
+    // Check IndexedDB first
+    const existing = await new Promise((resolve, reject) => {
+      const tx = db.transaction(FAV_IDB_STORE, 'readonly');
+      const req = tx.objectStore(FAV_IDB_STORE).get(FAV_IDB_ID);
+      req.onsuccess = e => resolve(e.target.result);
+      req.onerror = e => reject(e.target.error);
+    });
+    if (existing) return existing;
+
+    // Migrate from old localStorage key if present
+    const oldRaw = localStorage.getItem('arkon_addrbook_k');
+    if (oldRaw) {
+      const buf = Uint8Array.from(atob(oldRaw), c => c.charCodeAt(0));
+      const migrated = await crypto.subtle.importKey('raw', buf, 'AES-GCM', false, ['encrypt','decrypt']);
+      await new Promise((resolve, reject) => {
+        const tx = db.transaction(FAV_IDB_STORE, 'readwrite');
+        const req = tx.objectStore(FAV_IDB_STORE).put(migrated, FAV_IDB_ID);
+        req.onsuccess = () => resolve();
+        req.onerror = e => reject(e.target.error);
+      });
+      localStorage.removeItem('arkon_addrbook_k'); // SECURITY: remove raw key from localStorage
+      return migrated;
     }
-    const key = await crypto.subtle.generateKey({ name:'AES-GCM', length:256 }, true, ['encrypt','decrypt']);
-    const exported = await crypto.subtle.exportKey('raw', key);
-    localStorage.setItem(FAV_KSTORE, btoa(String.fromCharCode(...new Uint8Array(exported))));
+
+    // Generate new non-extractable key in IndexedDB
+    const key = await crypto.subtle.generateKey({ name:'AES-GCM', length:256 }, false, ['encrypt','decrypt']);
+    await new Promise((resolve, reject) => {
+      const tx = db.transaction(FAV_IDB_STORE, 'readwrite');
+      const req = tx.objectStore(FAV_IDB_STORE).put(key, FAV_IDB_ID);
+      req.onsuccess = () => resolve();
+      req.onerror = e => reject(e.target.error);
+    });
     return key;
   } catch { return null; }
 }
@@ -5530,24 +5569,79 @@ let invColor = '#0e3a8a'; // invoice accent color
 // ═══════════════════════════════════════════
 //    INVOICE CONTACTS (unified company + client)
 // ═══════════════════════════════════════════
-const INV_CONTACTS_KEY = 'arkon_inv_contacts';
-function getInvContacts() {
-  try { return JSON.parse(localStorage.getItem(INV_CONTACTS_KEY) || '[]'); } catch { return []; }
-}
-function saveInvContacts(list) { localStorage.setItem(INV_CONTACTS_KEY, JSON.stringify(list)); }
+const INV_CONTACTS_KEY = 'arkon_inv_contacts_enc';
+const INV_CONTACTS_IDB_ID = 'inv_contacts_aes';
 
-function saveContactFromForm(type) {
+// --- Encrypted invoice contacts (same IDB pattern as favorites) ---
+async function _invContactsGetKey() {
+  try {
+    const db = await _favOpenIDB(); // reuse the same IDB
+    const existing = await new Promise((resolve, reject) => {
+      const tx = db.transaction(FAV_IDB_STORE, 'readonly');
+      const req = tx.objectStore(FAV_IDB_STORE).get(INV_CONTACTS_IDB_ID);
+      req.onsuccess = e => resolve(e.target.result);
+      req.onerror = e => reject(e.target.error);
+    });
+    if (existing) return existing;
+    const key = await crypto.subtle.generateKey({ name:'AES-GCM', length:256 }, false, ['encrypt','decrypt']);
+    await new Promise((resolve, reject) => {
+      const tx = db.transaction(FAV_IDB_STORE, 'readwrite');
+      const req = tx.objectStore(FAV_IDB_STORE).put(key, INV_CONTACTS_IDB_ID);
+      req.onsuccess = () => resolve();
+      req.onerror = e => reject(e.target.error);
+    });
+    return key;
+  } catch { return null; }
+}
+
+async function getInvContacts() {
+  try {
+    const raw = localStorage.getItem(INV_CONTACTS_KEY);
+    if (!raw) {
+      // Migrate from old unencrypted store
+      const old = localStorage.getItem('arkon_inv_contacts');
+      if (old) {
+        const list = JSON.parse(old);
+        await saveInvContacts(list);
+        localStorage.removeItem('arkon_inv_contacts');
+        return list;
+      }
+      return [];
+    }
+    const key = await _invContactsGetKey();
+    if (!key) return [];
+    const buf = Uint8Array.from(atob(raw), c => c.charCodeAt(0));
+    const iv = buf.slice(0, 12);
+    const ct = buf.slice(12);
+    const dec = await crypto.subtle.decrypt({ name:'AES-GCM', iv }, key, ct);
+    return JSON.parse(new TextDecoder().decode(dec));
+  } catch { return []; }
+}
+
+async function saveInvContacts(list) {
+  try {
+    const key = await _invContactsGetKey();
+    if (!key) return;
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    const enc = await crypto.subtle.encrypt({ name:'AES-GCM', iv }, key, new TextEncoder().encode(JSON.stringify(list)));
+    const buf = new Uint8Array(iv.length + enc.byteLength);
+    buf.set(iv); buf.set(new Uint8Array(enc), iv.length);
+    localStorage.setItem(INV_CONTACTS_KEY, btoa(String.fromCharCode(...buf)));
+  } catch {}
+}
+
+async function saveContactFromForm(type) {
   const prefix = type === 'from' ? 'inv-from' : 'inv-to';
   const name = document.getElementById(prefix + '-name').value.trim();
   if (!name) { showToast('Enter a name first'); return; }
   const data = { name, addr: document.getElementById(prefix + '-addr').value, email: document.getElementById(prefix + '-email').value };
   if (type === 'from') data.phone = document.getElementById('inv-from-phone').value;
   data.type = type; data.ts = Date.now();
-  const contacts = getInvContacts();
+  const contacts = await getInvContacts();
   const idx = contacts.findIndex(c => c.name === name && c.type === type);
   if (idx >= 0) contacts[idx] = { ...contacts[idx], ...data };
   else contacts.push(data);
-  saveInvContacts(contacts);
+  await saveInvContacts(contacts);
   showToast('Contact saved');
   const btnId = type === 'from' ? 'inv-save-co-btn' : 'inv-save-client-btn';
   const btn = document.getElementById(btnId);
@@ -5563,11 +5657,11 @@ function fillContactToForm(type, contact) {
   hideContactSuggest(type);
 }
 
-function showContactSuggest(type, query) {
+async function showContactSuggest(type, query) {
   const el = document.getElementById(type === 'from' ? 'inv-from-suggest' : 'inv-to-suggest');
   if (!el) return;
   const q = (query || '').toLowerCase();
-  const contacts = getInvContacts().filter(c => {
+  const contacts = (await getInvContacts()).filter(c => {
     if (q && !c.name.toLowerCase().includes(q)) return false;
     return true;
   });
@@ -5595,11 +5689,11 @@ function pickContact(type, idx) {
 }
 
 // Contacts repository rendering
-function renderInvContacts() {
+async function renderInvContacts() {
   const list = document.getElementById('inv-contacts-list');
   const empty = document.getElementById('inv-contacts-empty');
   if (!list) return;
-  const contacts = getInvContacts().sort((a, b) => a.name.localeCompare(b.name));
+  const contacts = (await getInvContacts()).sort((a, b) => a.name.localeCompare(b.name));
   if (contacts.length === 0) { list.innerHTML = ''; if (empty) empty.style.display = 'block'; return; }
   if (empty) empty.style.display = 'none';
   list.innerHTML = contacts.map(c => {
@@ -5640,8 +5734,8 @@ function toggleEditContact(ts) {
   if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
 }
 
-function saveEditContact(ts) {
-  const contacts = getInvContacts();
+async function saveEditContact(ts) {
+  const contacts = await getInvContacts();
   const c = contacts.find(x => String(x.ts) === String(ts));
   if (!c) return;
   const eid = 'cedit-' + ts;
@@ -5649,37 +5743,37 @@ function saveEditContact(ts) {
   c.addr = document.getElementById(eid + '-addr')?.value || '';
   c.email = document.getElementById(eid + '-email')?.value || '';
   if (c.type === 'from') c.phone = document.getElementById(eid + '-phone')?.value || '';
-  saveInvContacts(contacts);
-  renderInvContacts();
+  await saveInvContacts(contacts);
+  await renderInvContacts();
   showToast('Contact updated');
 }
 
-function deleteInvContact(ts) {
+async function deleteInvContact(ts) {
   if (!confirm('Delete this contact?')) return;
-  const contacts = getInvContacts().filter(c => String(c.ts) !== String(ts));
-  saveInvContacts(contacts);
-  renderInvContacts();
+  const contacts = (await getInvContacts()).filter(c => String(c.ts) !== String(ts));
+  await saveInvContacts(contacts);
+  await renderInvContacts();
 }
 
 // Migrate old company data
-(function migrateOldCompany() {
+(async function migrateOldCompany() {
   const old = localStorage.getItem('arkon_inv_company');
   if (!old) return;
   try {
     const d = JSON.parse(old);
     if (d && d.name) {
-      const contacts = getInvContacts();
+      const contacts = await getInvContacts();
       if (!contacts.some(c => c.name === d.name && c.type === 'from')) {
         contacts.push({ name: d.name, addr: d.addr || '', email: d.email || '', phone: d.phone || '', type: 'from', ts: Date.now() });
-        saveInvContacts(contacts);
+        await saveInvContacts(contacts);
       }
     }
     localStorage.removeItem('arkon_inv_company');
   } catch {}
 })();
 
-function loadInvCompany() {
-  const contacts = getInvContacts().filter(c => c.type === 'from');
+async function loadInvCompany() {
+  const contacts = (await getInvContacts()).filter(c => c.type === 'from');
   if (contacts.length === 0) return;
   const d = contacts[0]; // most recent company contact
   if (d.name)  document.getElementById('inv-from-name').value = d.name;
@@ -5688,7 +5782,7 @@ function loadInvCompany() {
   if (d.phone) document.getElementById('inv-from-phone').value = d.phone;
 }
 
-function openInvoice() {
+async function openInvoice() {
   // Seed today's date and a default invoice number
   const today = new Date();
   const iso = today.toISOString().split('T')[0];
@@ -5706,7 +5800,7 @@ function openInvoice() {
   document.getElementById('inv-to-email').value = '';
   document.getElementById('inv-notes').value = '';
   // Load saved company details
-  loadInvCompany();
+  await loadInvCompany();
   // Reset save button states
   const saveSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>';
   const coBtn = document.getElementById('inv-save-co-btn');
@@ -5957,23 +6051,25 @@ function buildInvPreview() {
 }
 
 function _buildInvoiceHtml() {
+  // SECURITY: escape all user data before injecting into standalone HTML
+  const h = s => esc(s); // reuse app's esc() for HTML entity encoding
   // Gather all invoice data
   const from = {
-    name:  document.getElementById('inv-from-name').value  || 'Your Company',
-    addr:  document.getElementById('inv-from-addr').value  || '',
-    email: document.getElementById('inv-from-email').value || '',
-    phone: document.getElementById('inv-from-phone').value || '',
+    name:  h(document.getElementById('inv-from-name').value  || 'Your Company'),
+    addr:  h(document.getElementById('inv-from-addr').value  || ''),
+    email: h(document.getElementById('inv-from-email').value || ''),
+    phone: h(document.getElementById('inv-from-phone').value || ''),
   };
   const to = {
-    name:  document.getElementById('inv-to-name').value  || 'Client',
-    addr:  document.getElementById('inv-to-addr').value  || '',
-    email: document.getElementById('inv-to-email').value || '',
+    name:  h(document.getElementById('inv-to-name').value  || 'Client'),
+    addr:  h(document.getElementById('inv-to-addr').value  || ''),
+    email: h(document.getElementById('inv-to-email').value || ''),
   };
-  const num      = document.getElementById('inv-num').value  || 'INV-001';
+  const num      = h(document.getElementById('inv-num').value  || 'INV-001');
   const date     = document.getElementById('inv-date').value || '';
   const due      = document.getElementById('inv-due').value  || '';
-  const notes    = document.getElementById('inv-notes').value || '';
-  const payAddr  = document.getElementById('inv-pay-addr').value || '';
+  const notes    = h(document.getElementById('inv-notes').value || '');
+  const payAddr  = h(document.getElementById('inv-pay-addr').value || '');
   const cur      = invCurrency || 'USD';
   const sym      = { USD:'$', EUR:'€', CHF:'CHF ', SATS:'', BTC:'₿ ' }[cur] || '$';
   const decimals = (cur === 'SATS') ? 0 : (cur === 'BTC') ? 8 : 2;
@@ -5985,7 +6081,7 @@ function _buildInvoiceHtml() {
   };
   const payLabels = { ark:'Ark (Instant)', lightning:'Lightning Network', onchain:'Bitcoin On-chain' };
   const rows = invItems.filter(it => it.desc || it.price).map(it =>
-    `<tr><td>${it.desc||'—'}</td><td style="text-align:center">${it.qty}</td><td style="text-align:right">${fmtAmt(+it.price||0)}</td><td style="text-align:right">${fmtAmt((+it.price||0)*(it.qty||1))}</td></tr>`
+    `<tr><td>${h(it.desc||'—')}</td><td style="text-align:center">${it.qty}</td><td style="text-align:right">${fmtAmt(+it.price||0)}</td><td style="text-align:right">${fmtAmt((+it.price||0)*(it.qty||1))}</td></tr>`
   ).join('');
   const AC = invColor || '#0e3a8a'; // accent color for A4
 
@@ -6310,13 +6406,49 @@ function deleteInvHist(id) {
 //    BATCH SEND — Ark payments queue
 // ═══════════════════════════════════════════
 const BATCH_KEY = 'arkon_batch_queue';
+const BATCH_HISTORY_KEY = 'arkon_batch_history';
+const BATCH_TXIDS_KEY = 'arkon_batch_txids';
 let _batchRunning = false;
+let _batchConfirmCb = null;
 
 function getBatchQueue() {
   try { return JSON.parse(localStorage.getItem(BATCH_KEY) || '[]'); } catch { return []; }
 }
 function saveBatchQueue(q) {
   localStorage.setItem(BATCH_KEY, JSON.stringify(q));
+}
+function getBatchHistory() {
+  try { return JSON.parse(localStorage.getItem(BATCH_HISTORY_KEY) || '[]'); } catch { return []; }
+}
+function saveBatchHistory(h) {
+  localStorage.setItem(BATCH_HISTORY_KEY, JSON.stringify(h));
+}
+function getBatchTxids() {
+  try { return JSON.parse(localStorage.getItem(BATCH_TXIDS_KEY) || '{}'); } catch { return {}; }
+}
+function saveBatchTxids(m) {
+  localStorage.setItem(BATCH_TXIDS_KEY, JSON.stringify(m));
+}
+
+function showBatchConfirm(msg, onConfirm) {
+  _batchConfirmCb = onConfirm;
+  const bar = document.getElementById('batch-confirm-bar');
+  const actions = document.getElementById('batch-actions');
+  document.getElementById('batch-confirm-msg').textContent = msg;
+  if (bar) bar.style.display = 'block';
+  if (actions) actions.style.display = 'none';
+}
+function hideBatchConfirm() {
+  _batchConfirmCb = null;
+  const bar = document.getElementById('batch-confirm-bar');
+  const actions = document.getElementById('batch-actions');
+  if (bar) bar.style.display = 'none';
+  if (actions) actions.style.display = 'block';
+}
+function execBatchConfirm() {
+  const cb = _batchConfirmCb;
+  hideBatchConfirm();
+  if (typeof cb === 'function') cb();
 }
 
 function openBatchSend() {
@@ -6347,6 +6479,7 @@ function parseBatchCSV(inputEl) {
       const parts = line.split(',').map(s => s.trim());
       const address = (parts[0] || '').replace(/^["']|["']$/g, '');
       const amount = Math.floor(Number(parts[1]));
+      const note = (parts.slice(2).join(',') || '').replace(/^["']|["']$/g, '').trim();
       if (!address || !amount || amount <= 0) { skipped++; continue; }
       const addrType = (typeof window._detectAddressType === 'function') ? window._detectAddressType(address) : 'unknown';
       if (addrType !== 'ark') { skipped++; continue; }
@@ -6354,6 +6487,7 @@ function parseBatchCSV(inputEl) {
         id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
         address: address,
         amount: amount,
+        note: note,
         status: 'pending',
         txid: null,
         error: null,
@@ -6419,11 +6553,11 @@ function renderBatchQueue() {
     const sc = statusColors[item.status] || 'var(--t3)';
     const sb = statusBgs[item.status] || 'var(--bg3)';
     const sl = statusLabels[item.status] || item.status;
-    const shortAddr = item.address.slice(0, 10) + '…' + item.address.slice(-6);
     return `<div style="background:var(--surf);border:1.5px solid var(--bdr);border-radius:14px;padding:12px 14px">
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px">
         <div style="flex:1;min-width:0">
-          <div style="font-size:12px;font-family:var(--f-mono);color:var(--t2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(shortAddr)}</div>
+          <div style="font-size:11px;font-family:var(--f-mono);color:var(--t2);word-break:break-all;line-height:1.4">${esc(item.address)}</div>
+          ${item.note ? `<div style="font-size:10px;color:var(--t3);margin-top:3px">${esc(item.note)}</div>` : ''}
           ${item.error ? `<div style="font-size:10px;color:var(--red);margin-top:3px;word-break:break-word">${esc(item.error)}</div>` : ''}
           ${item.txid ? `<div style="font-size:10px;color:var(--t3);margin-top:3px;font-family:var(--f-mono)">tx: ${esc(item.txid.slice(0, 12))}…</div>` : ''}
         </div>
@@ -6437,33 +6571,64 @@ function renderBatchQueue() {
   }).join('');
 }
 
-async function startBatchSend() {
+function startBatchSend() {
   const q = getBatchQueue();
   const pending = q.filter(i => i.status === 'pending');
   if (!pending.length) { showToast('No pending items'); return; }
-  if (!confirm('Send ' + pending.length + ' Ark payment' + (pending.length !== 1 ? 's' : '') + ' totalling ' + pending.reduce((s, i) => s + i.amount, 0).toLocaleString() + ' SATS in one round?')) return;
+  // SECURITY: re-validate all addresses from persisted queue before sending
+  const detect = typeof window._detectAddressType === 'function' ? window._detectAddressType : () => 'unknown';
+  const invalid = pending.filter(i => detect(i.address) !== 'ark');
+  if (invalid.length) {
+    invalid.forEach(i => { i.status = 'failed'; i.error = 'Invalid address (re-validation failed)'; });
+    saveBatchQueue(q); renderBatchQueue();
+    showToast(invalid.length + ' item(s) rejected — not valid Ark addresses');
+    return;
+  }
+  const totalSats = pending.reduce((s, i) => s + i.amount, 0);
+  const msg = 'Send ' + pending.length + ' payment' + (pending.length !== 1 ? 's' : '') + ' totalling ' + totalSats.toLocaleString() + ' SATS?';
+  showBatchConfirm(msg, () => executeBatchSend());
+}
+
+async function executeBatchSend() {
+  const q = getBatchQueue();
+  const pending = q.filter(i => i.status === 'pending');
+  if (!pending.length) return;
   _batchRunning = true;
-  // Mark all pending as sending
   pending.forEach(item => { item.status = 'sending'; });
   saveBatchQueue(q);
   renderBatchQueue();
+  let histEntry = {
+    id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+    ts: Date.now(),
+    txid: null,
+    recipients: pending.map(i => ({ address: i.address, amount: i.amount, note: i.note || '' })),
+    totalSats: pending.reduce((s, i) => s + i.amount, 0),
+    count: pending.length,
+    status: 'failed',
+    error: null
+  };
   try {
     if (typeof window._sdkSendBatch !== 'function') throw new Error('Wallet SDK not ready');
     const recipients = pending.map(item => ({ address: item.address, amount: item.amount }));
     const txid = await window._sdkSendBatch(recipients);
-    // All sent in one round — mark all as sent with the same txid
     pending.forEach(item => { item.status = 'sent'; item.txid = txid || 'ok'; item.error = null; });
     saveBatchQueue(q);
-    renderBatchQueue();
-    showToast('Batch done: ' + pending.length + ' sent in 1 round ⚡');
+    histEntry.txid = txid || 'ok';
+    histEntry.status = 'sent';
+    // Tag this txid as a batch send
+    if (txid) { const m = getBatchTxids(); m[txid] = true; saveBatchTxids(m); }
+    showToast('Batch done: ' + pending.length + ' sent in 1 round');
   } catch (e) {
     const errMsg = e?.message || 'Batch send failed';
-    // All failed — mark all back as failed
     pending.forEach(item => { item.status = 'failed'; item.error = errMsg; });
     saveBatchQueue(q);
-    renderBatchQueue();
+    histEntry.error = errMsg;
     showToast('Batch failed: ' + errMsg);
   }
+  // Save history
+  const hist = getBatchHistory();
+  hist.unshift(histEntry);
+  saveBatchHistory(hist);
   _batchRunning = false;
   renderBatchQueue();
 }
@@ -6493,10 +6658,11 @@ function clearSentBatch() {
 
 function clearAllBatch() {
   if (_batchRunning) { showToast('Stop batch first'); return; }
-  if (!confirm('Clear entire batch queue?')) return;
-  saveBatchQueue([]);
-  renderBatchQueue();
-  showToast('Queue cleared');
+  showBatchConfirm('Clear entire batch queue?', () => {
+    saveBatchQueue([]);
+    renderBatchQueue();
+    showToast('Queue cleared');
+  });
 }
 
 function removeBatchItem(id) {
@@ -6506,13 +6672,91 @@ function removeBatchItem(id) {
 }
 
 function downloadSampleCSV() {
-  const csv = 'address,amount\nark1qexampleaddress1,5000\nark1qexampleaddress2,3000\n';
+  const csv = 'address,amount,note\nark1qexampleaddress1,5000,Payment for services\nark1qexampleaddress2,3000,Refund\n';
   const blob = new Blob([csv], { type: 'text/csv' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = 'batch-send-sample.csv';
   a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 3000);
+}
+
+function switchBatchTab(tab) {
+  const qBtn = document.getElementById('batch-tab-queue');
+  const hBtn = document.getElementById('batch-tab-history');
+  const qView = document.getElementById('batch-view-queue');
+  const hView = document.getElementById('batch-view-history');
+  if (tab === 'history') {
+    if (qBtn) { qBtn.style.background = 'transparent'; qBtn.style.color = 'var(--t3)'; qBtn.style.boxShadow = 'none'; }
+    if (hBtn) { hBtn.style.background = 'var(--surf)'; hBtn.style.color = 'var(--t1)'; hBtn.style.boxShadow = '0 1px 3px rgba(0,0,0,.08)'; }
+    if (qView) qView.style.display = 'none';
+    if (hView) hView.style.display = 'block';
+    renderBatchHistory();
+  } else {
+    if (hBtn) { hBtn.style.background = 'transparent'; hBtn.style.color = 'var(--t3)'; hBtn.style.boxShadow = 'none'; }
+    if (qBtn) { qBtn.style.background = 'var(--surf)'; qBtn.style.color = 'var(--t1)'; qBtn.style.boxShadow = '0 1px 3px rgba(0,0,0,.08)'; }
+    if (hView) hView.style.display = 'none';
+    if (qView) qView.style.display = 'block';
+  }
+}
+
+function renderBatchHistory() {
+  const hist = getBatchHistory();
+  const list = document.getElementById('batch-history-list');
+  const empty = document.getElementById('batch-history-empty');
+  const clearBtn = document.getElementById('batch-clear-history-btn');
+  if (!list) return;
+  if (hist.length === 0) {
+    list.innerHTML = '';
+    if (empty) empty.style.display = 'block';
+    if (clearBtn) clearBtn.style.display = 'none';
+    return;
+  }
+  if (empty) empty.style.display = 'none';
+  if (clearBtn) clearBtn.style.display = 'block';
+  list.innerHTML = hist.map(h => {
+    const d = new Date(h.ts);
+    const dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    const timeStr = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    const isSent = h.status === 'sent';
+    const sc = isSent ? 'var(--grn)' : 'var(--red)';
+    const sb = isSent ? 'var(--grns)' : 'rgba(255,77,77,.12)';
+    const sl = isSent ? 'Sent' : 'Failed';
+    const txShort = h.txid ? h.txid.slice(0, 12) + '…' : '';
+    return `<div style="background:var(--surf);border:1.5px solid var(--bdr);border-radius:14px;padding:12px 14px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+        <div style="font-size:11px;color:var(--t3)">${esc(dateStr)} ${esc(timeStr)}</div>
+        <span style="font-size:9px;font-weight:700;padding:2px 8px;border-radius:6px;background:${sb};color:${sc}">${sl}</span>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div style="font-size:13px;font-weight:700;color:var(--t1)">${h.count} payment${h.count !== 1 ? 's' : ''}</div>
+        <div style="font-size:13px;font-weight:800;color:var(--t1)">${h.totalSats.toLocaleString()} <span style="font-size:10px;font-weight:600;color:var(--t3)">SATS</span></div>
+      </div>
+      ${h.txid ? `<div style="font-size:10px;color:var(--t3);margin-top:4px;font-family:var(--f-mono);cursor:pointer" onclick="navigator.clipboard.writeText('${esc(h.txid)}').then(()=>showToast('TX ID copied'))">tx: ${esc(txShort)}</div>` : ''}
+      ${h.error ? `<div style="font-size:10px;color:var(--red);margin-top:4px">${esc(h.error)}</div>` : ''}
+      <details style="margin-top:8px">
+        <summary style="font-size:10px;font-weight:600;color:var(--acc2);cursor:pointer;list-style:none;display:flex;align-items:center;gap:4px">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:10px;height:10px"><polyline points="6 9 12 15 18 9"/></svg>
+          Show recipients
+        </summary>
+        <div style="margin-top:6px;display:flex;flex-direction:column;gap:4px">
+          ${h.recipients.map(r => `<div style="background:var(--bg3);border-radius:8px;padding:8px 10px">
+            <div style="font-size:10px;font-family:var(--f-mono);color:var(--t2);word-break:break-all;line-height:1.3">${esc(r.address)}</div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:3px">
+              <span style="font-size:10px;color:var(--t3)">${r.note ? esc(r.note) : ''}</span>
+              <span style="font-size:11px;font-weight:700;color:var(--t1)">${r.amount.toLocaleString()} sats</span>
+            </div>
+          </div>`).join('')}
+        </div>
+      </details>
+    </div>`;
+  }).join('');
+}
+
+function clearBatchHistory() {
+  saveBatchHistory([]);
+  renderBatchHistory();
+  showToast('History cleared');
 }
 
 /* ═══════════════════════════════════════════
@@ -8025,13 +8269,22 @@ async function arcadeSendBitcoin(address, amount) {
     </div>
     <div class="sheet-body">
 
+      <!-- Tab toggle -->
+      <div style="display:flex;gap:0;margin-bottom:14px;background:var(--bg3);border-radius:10px;padding:3px">
+        <button id="batch-tab-queue" onclick="switchBatchTab('queue')" style="flex:1;height:32px;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;background:var(--surf);color:var(--t1);box-shadow:0 1px 3px rgba(0,0,0,.08)">Queue</button>
+        <button id="batch-tab-history" onclick="switchBatchTab('history')" style="flex:1;height:32px;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;background:transparent;color:var(--t3)">History</button>
+      </div>
+
+      <!-- Queue view -->
+      <div id="batch-view-queue">
+
       <!-- Upload section -->
       <div id="batch-upload-area">
         <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--t3);margin-bottom:10px">Upload CSV</div>
         <div style="background:var(--surf);border:1.5px dashed var(--bdr);border-radius:14px;padding:24px 16px;text-align:center;cursor:pointer" onclick="document.getElementById('batch-csv-input').click()">
           <svg viewBox="0 0 24 24" fill="none" stroke="var(--t3)" stroke-width="1.5" style="width:32px;height:32px;margin-bottom:8px"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
           <div style="font-size:13px;font-weight:600;color:var(--t2)">Tap to upload CSV</div>
-          <div style="font-size:10px;color:var(--t3);margin-top:4px">Format: address,amount (sats)</div>
+          <div style="font-size:10px;color:var(--t3);margin-top:4px">Format: address,amount,note (note optional)</div>
         </div>
         <input type="file" id="batch-csv-input" accept=".csv,.txt" style="display:none" onchange="parseBatchCSV(this)">
         <button class="btns" style="margin-top:10px;font-size:11px" onclick="downloadSampleCSV()">
@@ -8057,11 +8310,20 @@ async function arcadeSendBitcoin(address, amount) {
       <!-- Queue list -->
       <div id="batch-queue-list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px"></div>
 
+      <!-- In-app confirm bar (replaces native confirm()) -->
+      <div id="batch-confirm-bar" style="display:none;background:var(--surf);border:1.5px solid var(--acc);border-radius:14px;padding:16px;margin-bottom:12px">
+        <div id="batch-confirm-msg" style="font-size:13px;font-weight:600;color:var(--t1);text-align:center;margin-bottom:12px"></div>
+        <div style="display:flex;gap:8px">
+          <button class="btns" style="flex:1;color:var(--t3)" onclick="hideBatchConfirm()">Cancel</button>
+          <button class="btnp" id="batch-confirm-yes" style="flex:1;background:var(--grn);height:42px" onclick="execBatchConfirm()">Confirm</button>
+        </div>
+      </div>
+
       <!-- Action buttons -->
       <div id="batch-actions" style="display:none">
         <button class="btnp" id="batch-send-btn" style="background:var(--grn);box-shadow:0 6px 20px rgba(48,208,104,.35)" onclick="startBatchSend()">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:15px;height:15px;display:inline;margin-right:6px"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-          Send All in 1 Round ⚡
+          SEND ALL
         </button>
         <div style="display:flex;gap:8px;margin-top:10px">
           <button class="btns" style="flex:1" id="batch-retry-btn" onclick="retryFailed()">Retry Failed</button>
@@ -8072,6 +8334,15 @@ async function arcadeSendBitcoin(address, amount) {
           <button class="btns" style="flex:1;color:var(--red)" onclick="clearAllBatch()">Clear All</button>
         </div>
         <button class="btns" id="batch-stop-btn" style="display:none;color:var(--red);margin-top:6px" onclick="stopBatchSend()">⏹ Stop Sending</button>
+      </div>
+
+      </div><!-- /batch-view-queue -->
+
+      <!-- History view -->
+      <div id="batch-view-history" style="display:none">
+        <div id="batch-history-list" style="display:flex;flex-direction:column;gap:8px"></div>
+        <div id="batch-history-empty" style="text-align:center;padding:32px 0;color:var(--t3);font-size:13px">No batch history yet</div>
+        <button class="btns" id="batch-clear-history-btn" style="display:none;color:var(--red);margin-top:10px" onclick="clearBatchHistory()">Clear History</button>
       </div>
 
       <button class="btns" onclick="closeSheet('batchsend')" style="margin-top:14px">Close</button>
