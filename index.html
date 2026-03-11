@@ -2294,6 +2294,8 @@ function generateAndShowNewKey() {
 function splashCopyKey() {
   if (!_newPrivKey) return;
   navigator.clipboard.writeText(_newPrivKey).then(() => {
+    // SECURITY: auto-clear clipboard after 30s so key doesn't persist
+    setTimeout(() => { navigator.clipboard.writeText('').catch(() => {}); }, 30000);
     const confirm = document.getElementById('sp-copy-confirm');
     if (confirm) {
       confirm.style.opacity = '1';
@@ -2344,6 +2346,7 @@ async function splashFinishCreate() {
     // breaks in the production single-file build where /src/wallet.js no longer exists.
     if (typeof window._restoreFromPrivKey !== 'function') throw new Error('Wallet not ready');
     const ok = await window._restoreFromPrivKey(_newPrivKey);
+    _newPrivKey = null; // SECURITY: wipe raw key from memory immediately
     if (!ok) throw new Error('Key storage failed');
   } catch (e) {
     console.error('[ArkON] Failed to save key securely:', e);
@@ -3561,19 +3564,55 @@ function resetLnInvoiceForm() {
 //    SAVED ADDRESSES (Encrypted Address Book)
 // ═══════════════════════════════════════════
 const FAV_STORE = 'arkon_addrbook_v2';
-const FAV_KSTORE = 'arkon_addrbook_k';
+const FAV_IDB_DB = 'arkon_fav_keys';
+const FAV_IDB_STORE = 'keys';
+const FAV_IDB_ID = 'addrbook_aes';
 
-// --- Crypto helpers (AES-GCM via SubtleCrypto) ---
+// --- Crypto helpers (AES-GCM via SubtleCrypto + IndexedDB non-extractable key) ---
+function _favOpenIDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(FAV_IDB_DB, 1);
+    req.onupgradeneeded = e => e.target.result.createObjectStore(FAV_IDB_STORE);
+    req.onsuccess = e => resolve(e.target.result);
+    req.onerror = e => reject(e.target.error);
+  });
+}
+
 async function _favGetKey() {
   try {
-    let raw = localStorage.getItem(FAV_KSTORE);
-    if (raw) {
-      const buf = Uint8Array.from(atob(raw), c => c.charCodeAt(0));
-      return crypto.subtle.importKey('raw', buf, 'AES-GCM', false, ['encrypt','decrypt']);
+    const db = await _favOpenIDB();
+    // Check IndexedDB first
+    const existing = await new Promise((resolve, reject) => {
+      const tx = db.transaction(FAV_IDB_STORE, 'readonly');
+      const req = tx.objectStore(FAV_IDB_STORE).get(FAV_IDB_ID);
+      req.onsuccess = e => resolve(e.target.result);
+      req.onerror = e => reject(e.target.error);
+    });
+    if (existing) return existing;
+
+    // Migrate from old localStorage key if present
+    const oldRaw = localStorage.getItem('arkon_addrbook_k');
+    if (oldRaw) {
+      const buf = Uint8Array.from(atob(oldRaw), c => c.charCodeAt(0));
+      const migrated = await crypto.subtle.importKey('raw', buf, 'AES-GCM', false, ['encrypt','decrypt']);
+      await new Promise((resolve, reject) => {
+        const tx = db.transaction(FAV_IDB_STORE, 'readwrite');
+        const req = tx.objectStore(FAV_IDB_STORE).put(migrated, FAV_IDB_ID);
+        req.onsuccess = () => resolve();
+        req.onerror = e => reject(e.target.error);
+      });
+      localStorage.removeItem('arkon_addrbook_k'); // SECURITY: remove raw key from localStorage
+      return migrated;
     }
-    const key = await crypto.subtle.generateKey({ name:'AES-GCM', length:256 }, true, ['encrypt','decrypt']);
-    const exported = await crypto.subtle.exportKey('raw', key);
-    localStorage.setItem(FAV_KSTORE, btoa(String.fromCharCode(...new Uint8Array(exported))));
+
+    // Generate new non-extractable key in IndexedDB
+    const key = await crypto.subtle.generateKey({ name:'AES-GCM', length:256 }, false, ['encrypt','decrypt']);
+    await new Promise((resolve, reject) => {
+      const tx = db.transaction(FAV_IDB_STORE, 'readwrite');
+      const req = tx.objectStore(FAV_IDB_STORE).put(key, FAV_IDB_ID);
+      req.onsuccess = () => resolve();
+      req.onerror = e => reject(e.target.error);
+    });
     return key;
   } catch { return null; }
 }
@@ -5530,24 +5569,79 @@ let invColor = '#0e3a8a'; // invoice accent color
 // ═══════════════════════════════════════════
 //    INVOICE CONTACTS (unified company + client)
 // ═══════════════════════════════════════════
-const INV_CONTACTS_KEY = 'arkon_inv_contacts';
-function getInvContacts() {
-  try { return JSON.parse(localStorage.getItem(INV_CONTACTS_KEY) || '[]'); } catch { return []; }
-}
-function saveInvContacts(list) { localStorage.setItem(INV_CONTACTS_KEY, JSON.stringify(list)); }
+const INV_CONTACTS_KEY = 'arkon_inv_contacts_enc';
+const INV_CONTACTS_IDB_ID = 'inv_contacts_aes';
 
-function saveContactFromForm(type) {
+// --- Encrypted invoice contacts (same IDB pattern as favorites) ---
+async function _invContactsGetKey() {
+  try {
+    const db = await _favOpenIDB(); // reuse the same IDB
+    const existing = await new Promise((resolve, reject) => {
+      const tx = db.transaction(FAV_IDB_STORE, 'readonly');
+      const req = tx.objectStore(FAV_IDB_STORE).get(INV_CONTACTS_IDB_ID);
+      req.onsuccess = e => resolve(e.target.result);
+      req.onerror = e => reject(e.target.error);
+    });
+    if (existing) return existing;
+    const key = await crypto.subtle.generateKey({ name:'AES-GCM', length:256 }, false, ['encrypt','decrypt']);
+    await new Promise((resolve, reject) => {
+      const tx = db.transaction(FAV_IDB_STORE, 'readwrite');
+      const req = tx.objectStore(FAV_IDB_STORE).put(key, INV_CONTACTS_IDB_ID);
+      req.onsuccess = () => resolve();
+      req.onerror = e => reject(e.target.error);
+    });
+    return key;
+  } catch { return null; }
+}
+
+async function getInvContacts() {
+  try {
+    const raw = localStorage.getItem(INV_CONTACTS_KEY);
+    if (!raw) {
+      // Migrate from old unencrypted store
+      const old = localStorage.getItem('arkon_inv_contacts');
+      if (old) {
+        const list = JSON.parse(old);
+        await saveInvContacts(list);
+        localStorage.removeItem('arkon_inv_contacts');
+        return list;
+      }
+      return [];
+    }
+    const key = await _invContactsGetKey();
+    if (!key) return [];
+    const buf = Uint8Array.from(atob(raw), c => c.charCodeAt(0));
+    const iv = buf.slice(0, 12);
+    const ct = buf.slice(12);
+    const dec = await crypto.subtle.decrypt({ name:'AES-GCM', iv }, key, ct);
+    return JSON.parse(new TextDecoder().decode(dec));
+  } catch { return []; }
+}
+
+async function saveInvContacts(list) {
+  try {
+    const key = await _invContactsGetKey();
+    if (!key) return;
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    const enc = await crypto.subtle.encrypt({ name:'AES-GCM', iv }, key, new TextEncoder().encode(JSON.stringify(list)));
+    const buf = new Uint8Array(iv.length + enc.byteLength);
+    buf.set(iv); buf.set(new Uint8Array(enc), iv.length);
+    localStorage.setItem(INV_CONTACTS_KEY, btoa(String.fromCharCode(...buf)));
+  } catch {}
+}
+
+async function saveContactFromForm(type) {
   const prefix = type === 'from' ? 'inv-from' : 'inv-to';
   const name = document.getElementById(prefix + '-name').value.trim();
   if (!name) { showToast('Enter a name first'); return; }
   const data = { name, addr: document.getElementById(prefix + '-addr').value, email: document.getElementById(prefix + '-email').value };
   if (type === 'from') data.phone = document.getElementById('inv-from-phone').value;
   data.type = type; data.ts = Date.now();
-  const contacts = getInvContacts();
+  const contacts = await getInvContacts();
   const idx = contacts.findIndex(c => c.name === name && c.type === type);
   if (idx >= 0) contacts[idx] = { ...contacts[idx], ...data };
   else contacts.push(data);
-  saveInvContacts(contacts);
+  await saveInvContacts(contacts);
   showToast('Contact saved');
   const btnId = type === 'from' ? 'inv-save-co-btn' : 'inv-save-client-btn';
   const btn = document.getElementById(btnId);
@@ -5563,11 +5657,11 @@ function fillContactToForm(type, contact) {
   hideContactSuggest(type);
 }
 
-function showContactSuggest(type, query) {
+async function showContactSuggest(type, query) {
   const el = document.getElementById(type === 'from' ? 'inv-from-suggest' : 'inv-to-suggest');
   if (!el) return;
   const q = (query || '').toLowerCase();
-  const contacts = getInvContacts().filter(c => {
+  const contacts = (await getInvContacts()).filter(c => {
     if (q && !c.name.toLowerCase().includes(q)) return false;
     return true;
   });
@@ -5595,11 +5689,11 @@ function pickContact(type, idx) {
 }
 
 // Contacts repository rendering
-function renderInvContacts() {
+async function renderInvContacts() {
   const list = document.getElementById('inv-contacts-list');
   const empty = document.getElementById('inv-contacts-empty');
   if (!list) return;
-  const contacts = getInvContacts().sort((a, b) => a.name.localeCompare(b.name));
+  const contacts = (await getInvContacts()).sort((a, b) => a.name.localeCompare(b.name));
   if (contacts.length === 0) { list.innerHTML = ''; if (empty) empty.style.display = 'block'; return; }
   if (empty) empty.style.display = 'none';
   list.innerHTML = contacts.map(c => {
@@ -5640,8 +5734,8 @@ function toggleEditContact(ts) {
   if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
 }
 
-function saveEditContact(ts) {
-  const contacts = getInvContacts();
+async function saveEditContact(ts) {
+  const contacts = await getInvContacts();
   const c = contacts.find(x => String(x.ts) === String(ts));
   if (!c) return;
   const eid = 'cedit-' + ts;
@@ -5649,37 +5743,37 @@ function saveEditContact(ts) {
   c.addr = document.getElementById(eid + '-addr')?.value || '';
   c.email = document.getElementById(eid + '-email')?.value || '';
   if (c.type === 'from') c.phone = document.getElementById(eid + '-phone')?.value || '';
-  saveInvContacts(contacts);
-  renderInvContacts();
+  await saveInvContacts(contacts);
+  await renderInvContacts();
   showToast('Contact updated');
 }
 
-function deleteInvContact(ts) {
+async function deleteInvContact(ts) {
   if (!confirm('Delete this contact?')) return;
-  const contacts = getInvContacts().filter(c => String(c.ts) !== String(ts));
-  saveInvContacts(contacts);
-  renderInvContacts();
+  const contacts = (await getInvContacts()).filter(c => String(c.ts) !== String(ts));
+  await saveInvContacts(contacts);
+  await renderInvContacts();
 }
 
 // Migrate old company data
-(function migrateOldCompany() {
+(async function migrateOldCompany() {
   const old = localStorage.getItem('arkon_inv_company');
   if (!old) return;
   try {
     const d = JSON.parse(old);
     if (d && d.name) {
-      const contacts = getInvContacts();
+      const contacts = await getInvContacts();
       if (!contacts.some(c => c.name === d.name && c.type === 'from')) {
         contacts.push({ name: d.name, addr: d.addr || '', email: d.email || '', phone: d.phone || '', type: 'from', ts: Date.now() });
-        saveInvContacts(contacts);
+        await saveInvContacts(contacts);
       }
     }
     localStorage.removeItem('arkon_inv_company');
   } catch {}
 })();
 
-function loadInvCompany() {
-  const contacts = getInvContacts().filter(c => c.type === 'from');
+async function loadInvCompany() {
+  const contacts = (await getInvContacts()).filter(c => c.type === 'from');
   if (contacts.length === 0) return;
   const d = contacts[0]; // most recent company contact
   if (d.name)  document.getElementById('inv-from-name').value = d.name;
@@ -5688,7 +5782,7 @@ function loadInvCompany() {
   if (d.phone) document.getElementById('inv-from-phone').value = d.phone;
 }
 
-function openInvoice() {
+async function openInvoice() {
   // Seed today's date and a default invoice number
   const today = new Date();
   const iso = today.toISOString().split('T')[0];
@@ -5706,7 +5800,7 @@ function openInvoice() {
   document.getElementById('inv-to-email').value = '';
   document.getElementById('inv-notes').value = '';
   // Load saved company details
-  loadInvCompany();
+  await loadInvCompany();
   // Reset save button states
   const saveSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>';
   const coBtn = document.getElementById('inv-save-co-btn');
@@ -5957,23 +6051,25 @@ function buildInvPreview() {
 }
 
 function _buildInvoiceHtml() {
+  // SECURITY: escape all user data before injecting into standalone HTML
+  const h = s => esc(s); // reuse app's esc() for HTML entity encoding
   // Gather all invoice data
   const from = {
-    name:  document.getElementById('inv-from-name').value  || 'Your Company',
-    addr:  document.getElementById('inv-from-addr').value  || '',
-    email: document.getElementById('inv-from-email').value || '',
-    phone: document.getElementById('inv-from-phone').value || '',
+    name:  h(document.getElementById('inv-from-name').value  || 'Your Company'),
+    addr:  h(document.getElementById('inv-from-addr').value  || ''),
+    email: h(document.getElementById('inv-from-email').value || ''),
+    phone: h(document.getElementById('inv-from-phone').value || ''),
   };
   const to = {
-    name:  document.getElementById('inv-to-name').value  || 'Client',
-    addr:  document.getElementById('inv-to-addr').value  || '',
-    email: document.getElementById('inv-to-email').value || '',
+    name:  h(document.getElementById('inv-to-name').value  || 'Client'),
+    addr:  h(document.getElementById('inv-to-addr').value  || ''),
+    email: h(document.getElementById('inv-to-email').value || ''),
   };
-  const num      = document.getElementById('inv-num').value  || 'INV-001';
+  const num      = h(document.getElementById('inv-num').value  || 'INV-001');
   const date     = document.getElementById('inv-date').value || '';
   const due      = document.getElementById('inv-due').value  || '';
-  const notes    = document.getElementById('inv-notes').value || '';
-  const payAddr  = document.getElementById('inv-pay-addr').value || '';
+  const notes    = h(document.getElementById('inv-notes').value || '');
+  const payAddr  = h(document.getElementById('inv-pay-addr').value || '');
   const cur      = invCurrency || 'USD';
   const sym      = { USD:'$', EUR:'€', CHF:'CHF ', SATS:'', BTC:'₿ ' }[cur] || '$';
   const decimals = (cur === 'SATS') ? 0 : (cur === 'BTC') ? 8 : 2;
@@ -5985,7 +6081,7 @@ function _buildInvoiceHtml() {
   };
   const payLabels = { ark:'Ark (Instant)', lightning:'Lightning Network', onchain:'Bitcoin On-chain' };
   const rows = invItems.filter(it => it.desc || it.price).map(it =>
-    `<tr><td>${it.desc||'—'}</td><td style="text-align:center">${it.qty}</td><td style="text-align:right">${fmtAmt(+it.price||0)}</td><td style="text-align:right">${fmtAmt((+it.price||0)*(it.qty||1))}</td></tr>`
+    `<tr><td>${h(it.desc||'—')}</td><td style="text-align:center">${it.qty}</td><td style="text-align:right">${fmtAmt(+it.price||0)}</td><td style="text-align:right">${fmtAmt((+it.price||0)*(it.qty||1))}</td></tr>`
   ).join('');
   const AC = invColor || '#0e3a8a'; // accent color for A4
 
@@ -6441,6 +6537,15 @@ async function startBatchSend() {
   const q = getBatchQueue();
   const pending = q.filter(i => i.status === 'pending');
   if (!pending.length) { showToast('No pending items'); return; }
+  // SECURITY: re-validate all addresses from persisted queue before sending
+  const detect = typeof window._detectAddressType === 'function' ? window._detectAddressType : () => 'unknown';
+  const invalid = pending.filter(i => detect(i.address) !== 'ark');
+  if (invalid.length) {
+    invalid.forEach(i => { i.status = 'failed'; i.error = 'Invalid address (re-validation failed)'; });
+    saveBatchQueue(q); renderBatchQueue();
+    showToast(invalid.length + ' item(s) rejected — not valid Ark addresses');
+    return;
+  }
   if (!confirm('Send ' + pending.length + ' Ark payment' + (pending.length !== 1 ? 's' : '') + ' totalling ' + pending.reduce((s, i) => s + i.amount, 0).toLocaleString() + ' SATS in one round?')) return;
   _batchRunning = true;
   // Mark all pending as sending
