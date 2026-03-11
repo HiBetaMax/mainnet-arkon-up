@@ -32,6 +32,7 @@ import {
   getAddress,
   getBoardingAddress,
   sendBitcoin,
+  sendBatch,
   onboard,
   offboard,
   detectAddressType,
@@ -80,6 +81,19 @@ window._sdkSendBitcoin = async ({ address, amount }) => {
   const safetyTimer = setTimeout(() => { _sendInProgress = false }, 30_000)
   try {
     return await sendBitcoin({ address, amount })
+  } finally {
+    clearTimeout(safetyTimer)
+    _sendInProgress = false
+  }
+}
+
+// Multi-output batch send — all recipients in ONE Ark round
+window._sdkSendBatch = async (recipients) => {
+  await init()
+  _sendInProgress = true
+  const safetyTimer = setTimeout(() => { _sendInProgress = false }, 60_000)
+  try {
+    return await sendBatch(recipients)
   } finally {
     clearTimeout(safetyTimer)
     _sendInProgress = false

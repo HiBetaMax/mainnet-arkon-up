@@ -24,6 +24,7 @@ export {
   getBoardingAddress,
   detectAddressType,
   sendBitcoin,
+  sendBatch,
   onboard,
   offboard,
   checkAndRenewVtxos,
