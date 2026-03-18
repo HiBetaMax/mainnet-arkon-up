@@ -45,17 +45,23 @@ export default function App() {
     const bar = document.getElementById('loader-bar')
     setTimeout(() => { if (bar) bar.style.width = '100%' }, 80)
 
-    // Route after loader animation
-    setTimeout(() => {
+    // Wait for main.js SDK bridge to define _bootApp, then route
+    function tryBoot() {
       if (hasWallet) {
-        useStore.getState().setBootState('booting')
         if (typeof window._bootApp === 'function') {
+          useStore.getState().setBootState('booting')
           window._bootApp()
+        } else {
+          // main.js hasn't loaded yet — retry every 100ms
+          setTimeout(tryBoot, 100)
         }
       } else {
         useStore.getState().setSplashStep(2)
       }
-    }, 360)
+    }
+
+    // Start after loader animation
+    setTimeout(tryBoot, 360)
   }, [])
 
   // Escape key closes all sheets

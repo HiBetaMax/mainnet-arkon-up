@@ -4,6 +4,7 @@ import App from './App'
 import './styles/global.css'
 import './styles/splash.css'
 import './styles/unlock.css'
+import './main.js'
 import './service-worker-registration.js'
 
 createRoot(document.getElementById('root')).render(

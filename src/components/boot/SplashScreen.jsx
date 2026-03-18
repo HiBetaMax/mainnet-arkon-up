@@ -30,10 +30,16 @@ export default function SplashScreen() {
     setHiding(true)
     setTimeout(() => {
       useStore.getState().setBootState('booting')
+      // Wait for _bootApp to be ready (main.js may still be loading)
+      function tryBoot() {
+        if (typeof window._bootApp === 'function') {
+          window._bootApp()
+        } else {
+          setTimeout(tryBoot, 100)
+        }
+      }
+      tryBoot()
     }, 500)
-    if (typeof window._bootApp === 'function') {
-      window._bootApp()
-    }
   }, [])
 
   const finishCreate = useCallback(async () => {
