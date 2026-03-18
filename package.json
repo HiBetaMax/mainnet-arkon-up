@@ -14,14 +14,20 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@arkade-os/boltz-swap": "0.3.0",
     "@arkade-os/sdk": "0.4.0",
-    "@arkade-os/boltz-swap": "0.3.0"
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "zustand": "^5.0.11"
   },
   "devDependencies": {
+    "@vitejs/plugin-react": "^5.1.4",
     "vite": "^5.4.0",
     "vite-plugin-singlefile": "^2.0.0"
   },
   "pnpm": {
-    "onlyBuiltDependencies": ["esbuild"]
+    "onlyBuiltDependencies": [
+      "esbuild"
+    ]
   }
 }
