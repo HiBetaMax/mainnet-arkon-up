@@ -1,27 +1,16 @@
-import { useCallback } from 'react'
-import useStore from '../../store'
-
-export default function SheetWrapper({ id, title, titleId, children, maxHeight, zIndex, customHead, onClose }) {
-  const openSheets = useStore((s) => s.openSheets)
-  const closeSheet = useStore((s) => s.closeSheet)
-  const isOpen = openSheets.includes(id)
-
-  const handleClose = useCallback(() => {
-    closeSheet(id)
-    if (onClose) onClose()
-  }, [closeSheet, id, onClose])
-
-  const handleOverlayClick = useCallback((e) => {
-    if (e.target === e.currentTarget) handleClose()
-  }, [handleClose])
-
+/**
+ * SheetWrapper — purely structural.
+ * Renders the overlay/sheet HTML skeleton.
+ * ui.js openSheet()/closeSheet() controls the .open class via DOM.
+ * React does NOT control sheet visibility.
+ */
+export default function SheetWrapper({ id, title, titleId, children, maxHeight, zIndex, customHead }) {
   const overlayStyle = zIndex ? { zIndex } : undefined
 
   return (
     <div
-      className={`overlay${isOpen ? ' open' : ''}`}
+      className="overlay"
       id={`sheet-${id}`}
-      onClick={handleOverlayClick}
       style={overlayStyle}
     >
       <div className="sheet" style={maxHeight ? { maxHeight } : undefined}>
@@ -31,7 +20,7 @@ export default function SheetWrapper({ id, title, titleId, children, maxHeight, 
           : title !== false && (
               <div className="sheet-head">
                 <span className="sheet-title" id={titleId || undefined}>{title}</span>
-                <button className="sheet-close" onClick={handleClose}>{'\u2715'}</button>
+                <button className="sheet-close" onClick={() => typeof closeSheet === 'function' && closeSheet(id)}>{'\u2715'}</button>
               </div>
             )}
         <div className="sheet-body">

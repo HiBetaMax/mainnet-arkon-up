@@ -18,19 +18,7 @@ import AllSheets from './components/sheets/AllSheets'
 import Toast from './components/shared/Toast'
 
 export default function App() {
-  const theme = useStore((s) => s.theme)
-  const colorScheme = useStore((s) => s.colorScheme)
   const bootState = useStore((s) => s.bootState)
-
-  // Sync theme attributes on <html>
-  useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme)
-    if (colorScheme === 'blue') {
-      document.documentElement.removeAttribute('data-scheme')
-    } else {
-      document.documentElement.setAttribute('data-scheme', colorScheme)
-    }
-  }, [theme, colorScheme])
 
   // Early wallet check + splash routing
   useEffect(() => {
@@ -64,10 +52,12 @@ export default function App() {
     setTimeout(tryBoot, 360)
   }, [])
 
-  // Escape key closes all sheets
+  // Escape key closes all open sheets via DOM (matches ui.js pattern)
   useEffect(() => {
     const handler = (e) => {
-      if (e.key === 'Escape') useStore.getState().closeAllSheets()
+      if (e.key === 'Escape') {
+        document.querySelectorAll('.overlay.open').forEach(el => el.classList.remove('open'))
+      }
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)

@@ -1,5 +1,9 @@
-import useStore from '../../store'
-
+/**
+ * BottomNav — purely structural.
+ * Renders nav items with correct IDs.
+ * ui.js showPage() controls the .active class via DOM.
+ * React does NOT control active state.
+ */
 const NAV_ITEMS = [
   {
     id: 'home',
@@ -62,16 +66,14 @@ const NAV_ITEMS = [
 ]
 
 export default function BottomNav() {
-  const activePage = useStore((s) => s.activePage)
-  const setActivePage = useStore((s) => s.setActivePage)
-
   return (
     <div id="bnav">
       {NAV_ITEMS.map((item) => (
         <div
           key={item.id}
-          className={`ni${activePage === item.id ? ' active' : ''}`}
-          onClick={() => setActivePage(item.id)}
+          id={`nav-${item.id}`}
+          className={`ni${item.id === 'home' ? ' active' : ''}`}
+          onClick={() => typeof showPage === 'function' && showPage(item.id)}
         >
           <div className="nbar" />
           {item.icon}

@@ -4,7 +4,6 @@ import useStore from '../../store'
 export default function SplashScreen() {
   const splashStep = useStore((s) => s.splashStep)
   const setSplashStep = useStore((s) => s.setSplashStep)
-  const showToast = useStore((s) => s.showToast)
   const [hiding, setHiding] = useState(false)
   const [backupChecked, setBackupChecked] = useState(false)
   const [restoreError, setRestoreError] = useState('')
@@ -43,7 +42,7 @@ export default function SplashScreen() {
   }, [])
 
   const finishCreate = useCallback(async () => {
-    if (!newKeyRef.current) { showToast('Key not generated yet'); return }
+    if (!newKeyRef.current) { window.showToast('Key not generated yet'); return }
     setCreating(true)
     try {
       if (typeof window._restoreFromPrivKey !== 'function') throw new Error('Wallet not ready')
@@ -53,10 +52,10 @@ export default function SplashScreen() {
       splashDone()
     } catch (e) {
       console.error('[ArkON] Failed to save key:', e)
-      showToast('Error saving wallet key')
+      window.showToast('Error saving wallet key')
       setCreating(false)
     }
-  }, [showToast, splashDone])
+  }, [splashDone])
 
   const doRestore = useCallback(async () => {
     const hex = restoreInputRef.current?.value?.trim() || ''

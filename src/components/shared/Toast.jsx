@@ -1,11 +1,8 @@
-import useStore from '../../store'
-
+/**
+ * Toast — purely structural.
+ * ui.js showToast() controls content and .show class via DOM.
+ * React does NOT control toast state.
+ */
 export default function Toast() {
-  const message = useStore((s) => s.toastMessage)
-
-  return (
-    <div id="toast" className={message ? 'show' : ''}>
-      {message || ''}
-    </div>
-  )
+  return <div id="toast" />
 }

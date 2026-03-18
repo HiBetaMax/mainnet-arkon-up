@@ -1,19 +1,10 @@
-import { useState, useRef, useCallback, useEffect } from 'react'
-import useStore from '../../store'
+import { useState, useRef, useCallback } from 'react'
 
 export default function UnlockGate() {
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const inputRef = useRef(null)
-  const showToast = useStore((s) => s.showToast)
-
-  // Expose show/hide to main.js via DOM classList (hybrid bridge)
   const gateRef = useRef(null)
-
-  useEffect(() => {
-    // main.js expects to find #wallet-unlock-gate and toggle .open class
-    // This is handled by the DOM element itself
-  }, [])
 
   const handleSubmit = useCallback(async () => {
     const password = inputRef.current?.value?.trim() || ''

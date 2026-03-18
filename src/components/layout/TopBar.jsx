@@ -1,9 +1,10 @@
-import useStore from '../../store'
-
+/**
+ * TopBar — purely structural.
+ * Wallet name is set by main.js via DOM (#topbar-wallet-name).
+ * Settings icon calls ui.js showPage().
+ * React does NOT control active state.
+ */
 export default function TopBar() {
-  const walletName = useStore((s) => s.walletName)
-  const showToast = useStore((s) => s.showToast)
-
   return (
     <div id="topbar">
       <div className="logo-row">
@@ -20,16 +21,16 @@ export default function TopBar() {
             <rect x="21.5" y="13" width="2.5" height="2.5" rx="0.5" fill="white" fillOpacity="0.5" />
           </svg>
         </span>
-        <span className="logo-text">{walletName}</span>
+        <span className="logo-text" id="topbar-wallet-name">ArkON</span>
       </div>
       <div className="topbar-r">
-        <div className="ic-btn" onClick={() => showToast('No new notifications')}>
+        <div className="ic-btn" onClick={() => typeof showToast === 'function' && showToast('No new notifications')}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
             <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" />
             <path d="M13.73 21a2 2 0 01-3.46 0" />
           </svg>
         </div>
-        <div className="ic-btn" onClick={() => useStore.getState().setActivePage('settings')}>
+        <div className="ic-btn" onClick={() => typeof showPage === 'function' && showPage('settings')}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
             <circle cx="12" cy="8" r="3.5" />
             <path d="M4 20c0-4.4 3.6-8 8-8s8 3.6 8 8" />

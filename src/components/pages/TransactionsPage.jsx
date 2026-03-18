@@ -1,5 +1,9 @@
-import useStore from '../../store'
-
+/**
+ * TransactionsPage — purely structural.
+ * Filters controlled by ui.js setFil() via DOM.
+ * Transaction list populated by main.js via DOM (#tx-list).
+ * React does NOT control filter state.
+ */
 const FILTERS = [
   { id: 'all', label: 'All' },
   { id: 'in', label: 'Received' },
@@ -9,9 +13,6 @@ const FILTERS = [
 ]
 
 export default function TransactionsPage() {
-  const txFilter = useStore((s) => s.txFilter)
-  const setTxFilter = useStore((s) => s.setTxFilter)
-
   return (
     <div style={{ padding: '0 20px 28px' }}>
       <div className="pg-head" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -28,8 +29,15 @@ export default function TransactionsPage() {
         </div>
       </div>
       <div className="fscroll">
-        {FILTERS.map(f => (
-          <div key={f.id} className={`ftg${txFilter === f.id ? ' active' : ''}`} data-filter={f.id} onClick={() => { setTxFilter(f.id); typeof setFil === 'function' && setFil(document.querySelector(`.ftg[data-filter="${f.id}"]`), f.id) }}>{f.label}</div>
+        {FILTERS.map((f, i) => (
+          <div
+            key={f.id}
+            className={`ftg${i === 0 ? ' active' : ''}`}
+            data-filter={f.id}
+            onClick={(e) => typeof setFil === 'function' && setFil(e.currentTarget, f.id)}
+          >
+            {f.label}
+          </div>
         ))}
       </div>
       <div className="txcard" id="tx-list" />

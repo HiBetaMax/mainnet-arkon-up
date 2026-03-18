@@ -1,25 +1,26 @@
-import { useState } from 'react'
-
+/**
+ * QRPage — purely structural.
+ * ui.js setAddrType() controls panel visibility and tab active state via DOM.
+ * React does NOT control panel visibility.
+ */
 export default function QRPage() {
-  const [addrType, setAddrType] = useState('ark')
-
   return (
     <div style={{ padding: '0 20px 28px' }}>
       <div className="pg-head"><div className="pg-title">QR</div><div className="pg-sub">Scan & receive payments</div></div>
 
       <div className="qr-type-row" style={{ marginBottom: 16 }}>
-        {['ark', 'lightning', 'onchain'].map(t => (
-          <div key={t} className={`qtt${addrType === t ? ' active' : ''}`} onClick={() => { setAddrType(t); typeof setAddrType_legacy === 'function' && setAddrType_legacy(null, t) }}>{t === 'onchain' ? 'On-chain' : t.charAt(0).toUpperCase() + t.slice(1)}</div>
+        {['ark', 'lightning', 'onchain'].map((t, i) => (
+          <div key={t} className={`qtt${i === 0 ? ' active' : ''}`} onClick={(e) => typeof setAddrType === 'function' && setAddrType(e.currentTarget, t)}>{t === 'onchain' ? 'On-chain' : t.charAt(0).toUpperCase() + t.slice(1)}</div>
         ))}
       </div>
 
       {/* Static panel: Ark / On-chain */}
-      <div id="qr-static-panel" style={{ display: addrType !== 'lightning' ? 'block' : 'none' }}>
+      <div id="qr-static-panel">
         <div className="qr-ring"><div className="qr-ring-inner"><div className="qr-canvas-wrap" id="qr-main-canvas" /></div></div>
         <div className="addr-blk">
           <div className="addr-lbl" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             Your address
-            <button className="addr-reveal-btn" onClick={() => typeof toggleAddrBlur === 'function' && toggleAddrBlur('qr-addr-val', event?.currentTarget)} title="Show/hide address">
+            <button className="addr-reveal-btn" onClick={(e) => typeof toggleAddrBlur === 'function' && toggleAddrBlur('qr-addr-val', e.currentTarget)} title="Show/hide address">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 15, height: 15 }}><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" /></svg>
             </button>
           </div>
@@ -32,7 +33,7 @@ export default function QRPage() {
       </div>
 
       {/* Lightning panel */}
-      <div id="qr-lightning-panel" style={{ display: addrType === 'lightning' ? 'block' : 'none' }}>
+      <div id="qr-lightning-panel" style={{ display: 'none' }}>
         <div id="qr-ln-form-wrap">
           <div style={{ background: 'var(--bg3)', border: '1px solid var(--bdr2)', borderRadius: 'var(--r-md)', padding: 16, marginBottom: 14 }}>
             <div style={{ padding: '4px 0 10px', color: 'var(--t3)', fontSize: 12, lineHeight: 1.5 }}>Create a Lightning invoice that settles into your Ark wallet.</div>
