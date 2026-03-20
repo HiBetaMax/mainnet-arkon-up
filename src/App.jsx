@@ -4,7 +4,6 @@ import useStore from './store'
 // Boot
 import SplashScreen from './components/boot/SplashScreen'
 import UnlockGate from './components/boot/UnlockGate'
-import SdkLoading from './components/boot/SdkLoading'
 
 // Layout
 import TopBar from './components/layout/TopBar'
@@ -68,7 +67,7 @@ export default function App() {
   return (
     <>
       <SplashScreen />
-      <SdkLoading />
+      {/* #sdk-loading is in index.html (outside React) so main.js can safely remove it */}
       <div id="app" style={{ opacity: showApp ? 1 : 0 }}>
         <TopBar />
         <Content />

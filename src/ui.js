@@ -45,34 +45,10 @@ function showTxDetail(id) {
 let spStep = 1;
 let _newPrivKey = null;
 
+// advSplash — React SplashScreen.jsx now controls splash flow via Zustand.
+// This is kept as a safe no-op for any legacy references.
 function advSplash(n) {
-  document.getElementById('sp' + spStep).classList.remove('active');
-  spStep = n;
-  document.getElementById('sp' + n).classList.add('active');
-
-  const footer = document.getElementById('sp-footer');
-
-  if (n === 2) {
-    // Onboarding choice — show both buttons
-    footer.style.visibility = 'visible';
-    document.getElementById('sp-btn').style.display  = '';
-    document.getElementById('sp-skip').style.display = '';
-  }
-  if (n === 3) {
-    // Create wallet — hide footer, generate and display the new key
-    document.getElementById('sp-btn').style.display  = 'none';
-    document.getElementById('sp-skip').style.display = 'none';
-    generateAndShowNewKey();
-  }
-  if (n === 4) {
-    // Restore screen — hide footer buttons (restore screen has its own)
-    document.getElementById('sp-btn').style.display  = 'none';
-    document.getElementById('sp-skip').style.display = 'none';
-    setTimeout(() => {
-      const inp = document.getElementById('sp-restore-key');
-      if (inp) inp.focus();
-    }, 300);
-  }
+  // React handles splash screens — no-op
 }
 
 function generateAndShowNewKey() {
@@ -190,35 +166,14 @@ async function splashRestore() {
   }
 }
 
+// splashDone — React App.jsx + SplashScreen.jsx now handle boot flow.
+// This is kept as a safe no-op for any legacy references.
 function splashDone() {
-  const sp    = document.getElementById('splash');
-  const app   = document.getElementById('app');
-  const sdkOv = document.getElementById('sdk-loading');
-  if (sdkOv) { sdkOv.style.pointerEvents = 'none'; sdkOv.classList.add('fade'); setTimeout(() => sdkOv.remove(), 500); }
-  sp.classList.add('hide');
-  app.style.opacity = '1';
-  setTimeout(() => sp.style.display = 'none', 500);
-  // Kick the SDK boot NOW — after the user has set up (or we confirmed they have a wallet).
-  // This prevents init() from auto-creating a key before onboarding is shown.
-  if (typeof window._bootApp === 'function') {
-    window._bootApp();
-  }
+  // React handles splash→boot transition — no-op
 }
 
-// Loading screen: fill bar, then route based on pre-captured wallet flag.
-// window._hasExistingWallet was set synchronously (inline script) BEFORE
-// any ES module could load, so init() cannot have written a new key yet.
-window.addEventListener('load', () => {
-  const bar = document.getElementById('loader-bar');
-  setTimeout(() => { if (bar) bar.style.width = '100%'; }, 80);
-  setTimeout(() => {
-    if (window._hasExistingWallet) {
-      splashDone();   // Returning user — skip onboarding
-    } else {
-      advSplash(2);   // New user — show Create / Restore
-    }
-  }, 1400);
-});
+// Boot routing is now handled by React App.jsx useEffect.
+// The old window.load handler has been removed to prevent conflicts.
 
 // "Create New Wallet" — key generation and backup are handled in advSplash(3) → splashFinishCreate()
 
@@ -838,8 +793,12 @@ function openSheet(t) {
 }
 function closeSheet(t) { document.getElementById('sheet-' + t).classList.remove('open'); }
 
-document.querySelectorAll('.overlay').forEach(o => {
-  o.addEventListener('click', e => { if (e.target === o) o.classList.remove('open'); });
+// Overlay click-to-close: use event delegation on document body
+// (works for React-rendered overlays that don't exist at import time)
+document.addEventListener('click', e => {
+  if (e.target.classList && e.target.classList.contains('overlay') && e.target.classList.contains('open')) {
+    e.target.classList.remove('open');
+  }
 });
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') document.querySelectorAll('.overlay.open').forEach(m => m.classList.remove('open'));
