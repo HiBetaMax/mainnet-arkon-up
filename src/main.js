@@ -32,6 +32,7 @@ import {
   getAddress,
   getBoardingAddress,
   sendBitcoin,
+  sendBatch,
   onboard,
   offboard,
   detectAddressType,
@@ -80,6 +81,19 @@ window._sdkSendBitcoin = async ({ address, amount }) => {
   const safetyTimer = setTimeout(() => { _sendInProgress = false }, 30_000)
   try {
     return await sendBitcoin({ address, amount })
+  } finally {
+    clearTimeout(safetyTimer)
+    _sendInProgress = false
+  }
+}
+
+// Multi-output batch send — all recipients in ONE Ark round
+window._sdkSendBatch = async (recipients) => {
+  await init()
+  _sendInProgress = true
+  const safetyTimer = setTimeout(() => { _sendInProgress = false }, 60_000)
+  try {
+    return await sendBatch(recipients)
   } finally {
     clearTimeout(safetyTimer)
     _sendInProgress = false
@@ -954,6 +968,18 @@ window.showLiveTxDetail = function(rowId) {
   const noteKey = 'arkade_txnote_' + (tx.txid || rowId)
   const savedNote = localStorage.getItem(noteKey) || ''
 
+  // Check if this is a batch send
+  let batchInfo = ''
+  try {
+    const batchTxids = JSON.parse(localStorage.getItem('arkon_batch_txids') || '{}')
+    if (tx.txid && batchTxids[tx.txid]) {
+      const batchHist = JSON.parse(localStorage.getItem('arkon_batch_history') || '[]')
+      const entry = batchHist.find(h => h.txid === tx.txid)
+      const count = entry ? entry.count : ''
+      batchInfo = `<div class="tdrow"><span class="tdlbl">Batch</span><span class="tdval" style="display:inline-flex;align-items:center;gap:5px"><span style="font-size:9px;font-weight:700;padding:2px 8px;border-radius:6px;background:var(--accs);color:var(--acc2)">Batch Send</span>${count ? '<span style="font-size:11px;color:var(--t3)">' + count + ' recipients</span>' : ''}</span></div>`
+    }
+  } catch {}
+
   body.innerHTML = `
     <div class="tx-detail-status">
       <div class="tds-icon ${tx.cls}">${txIcon(tx.cls)}</div>
@@ -966,6 +992,7 @@ window.showLiveTxDetail = function(rowId) {
 
     <div class="tx-details-card">
       <div class="tdrow"><span class="tdlbl">Type</span><span class="tdval">${tx.label}</span></div>
+      ${batchInfo}
       <div class="tdrow"><span class="tdlbl">Network</span><span class="tdval">${tx.network}</span></div>
       <div class="tdrow"><span class="tdlbl">Date</span><span class="tdval">${tx.date}</span></div>
       <div class="tdrow"><span class="tdlbl">Time</span><span class="tdval">${tx.time}</span></div>
