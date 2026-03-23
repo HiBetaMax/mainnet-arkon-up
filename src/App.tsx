@@ -1,5 +1,5 @@
 import { useEffect, useCallback } from 'react'
-import useStore from './store/index.ts'
+import useStore from './store'
 
 // Boot
 import SplashScreen from './components/boot/SplashScreen'
@@ -28,7 +28,6 @@ export default function App() {
 
     useStore.getState().setHasExistingWallet(hasWallet)
 
-    // Remove SDK loading overlay for new users (no wallet to connect)
     function removeSdkLoading() {
       const el = document.getElementById('sdk-loading')
       if (el) {
@@ -37,32 +36,34 @@ export default function App() {
       }
     }
 
-    // Wait for main.js SDK bridge to define _bootApp, then route
-    // TODO: Once full migration is complete, replace with direct bootWallet() call
-    let retries = 0
-    const MAX_RETRIES = 100 // 10 seconds max
-    function tryBoot() {
-      if (hasWallet) {
-        if (typeof (window as any)._bootApp === 'function') {
-          useStore.getState().setBootState('booting')
-          ;(window as any)._bootApp()
-        } else if (retries < MAX_RETRIES) {
-          retries++
-          setTimeout(tryBoot, 100)
-        } else {
-          console.error('[ArkON] _bootApp never became available after 10s')
-          removeSdkLoading()
-          useStore.getState().setBootState('splash')
-          useStore.getState().setSplashStep(2)
-        }
-      } else {
-        removeSdkLoading()
-        useStore.getState().setSplashStep(2)
-      }
+    function markReady() {
+      removeSdkLoading()
+      useStore.getState().setBootState('ready')
     }
 
-    // Start after loader animation
-    setTimeout(tryBoot, 360)
+    // Register callback for main.js boot completion
+    ;(window as any)._onBootReady = markReady
+
+    if (hasWallet) {
+      // main.js boot may have already completed before React mounted
+      if ((window as any)._wallet) {
+        markReady()
+      } else {
+        // Boot in progress or not started — poll for completion
+        useStore.getState().setBootState('booting')
+        const check = setInterval(() => {
+          if ((window as any)._wallet) {
+            clearInterval(check)
+            markReady()
+          }
+        }, 200)
+        // Safety timeout
+        setTimeout(() => clearInterval(check), 15000)
+      }
+    } else {
+      removeSdkLoading()
+      useStore.getState().setSplashStep(2)
+    }
   }, [])
 
   // Escape key closes all open sheets

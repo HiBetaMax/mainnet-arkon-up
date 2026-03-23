@@ -1,4 +1,4 @@
-import useStore from '../../store/index.ts'
+import useStore from '../../store'
 
 export default function TopBar() {
   const walletName = useStore((s) => s.walletName)

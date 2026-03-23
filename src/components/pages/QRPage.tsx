@@ -1,4 +1,4 @@
-import useStore from '../../store/index.ts'
+import useStore from '../../store'
 
 export default function QRPage() {
   const qrTab = useStore((s) => s.qrTab)

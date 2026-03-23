@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef } from 'react'
-import useStore from '../../store/index.ts'
+import useStore from '../../store'
 
 export default function SplashScreen() {
   const splashStep = useStore((s) => s.splashStep)

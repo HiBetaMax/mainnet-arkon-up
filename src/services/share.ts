@@ -5,8 +5,8 @@
  * Uses Zustand store for share state instead of globals.
  */
 
-import useStore from '../store/index.ts'
-import type { ShareType } from '../store/index.ts'
+import useStore from '../store'
+import type { ShareType } from '../store'
 
 export function shareContent(title: string, value: string, type: ShareType): void {
   useStore.getState().setShareData({ title, value, type })

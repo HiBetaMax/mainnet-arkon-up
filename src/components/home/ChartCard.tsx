@@ -3,7 +3,7 @@
  * The canvas rendering is still handled by ui.js drawChart / chart logic.
  * React controls the range buttons and header display.
  */
-import useStore from '../../store/index.ts'
+import useStore from '../../store'
 
 const RANGES = ['24H', '7D', '1M', '1Y'] as const
 

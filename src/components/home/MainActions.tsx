@@ -1,4 +1,4 @@
-import useStore from '../../store/index.ts'
+import useStore from '../../store'
 
 export default function MainActions() {
   const openSheet = useStore((s) => s.openSheet)

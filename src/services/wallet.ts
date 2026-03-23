@@ -6,7 +6,7 @@
  * from window or DOM.
  */
 
-import useStore from '../store/index.ts'
+import useStore from '../store'
 import {
   init,
   getBalance,
@@ -43,7 +43,7 @@ import {
   decodeLightningPaymentRequest,
   getLightningSwaps,
 } from '../wallet/index.js'
-import type { SendNetwork, TxDetail, LightningLogEntry } from '../store/index.ts'
+import type { SendNetwork, TxDetail, LightningLogEntry } from '../store'
 
 // ─── Guards ─────────────────────────────────────────────────────────────────
 

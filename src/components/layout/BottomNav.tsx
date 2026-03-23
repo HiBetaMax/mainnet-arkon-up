@@ -1,6 +1,6 @@
 import { useCallback, type ReactNode } from 'react'
-import useStore from '../../store/index.ts'
-import type { Page } from '../../store/index.ts'
+import useStore from '../../store'
+import type { Page } from '../../store'
 
 interface NavItem {
   id: Page

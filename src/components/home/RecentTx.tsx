@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import useStore from '../../store/index.ts'
+import useStore from '../../store'
 
 export default function RecentTx() {
   const txRegistry = useStore((s) => s.txRegistry)
