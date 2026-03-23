@@ -1,17 +1,10 @@
 import { defineConfig } from 'vite'
-import { viteSingleFile } from 'vite-plugin-singlefile'
+import react from '@vitejs/plugin-react'
 
 export default defineConfig({
-  plugins: [viteSingleFile()],
+  plugins: [react()],
   build: {
     target: 'esnext',
-    assetsInlineLimit: 100_000_000,
-    cssCodeSplit: false,
     outDir: 'dist',
-    rollupOptions: {
-      output: {
-        inlineDynamicImports: true,
-      },
-    },
   },
 })

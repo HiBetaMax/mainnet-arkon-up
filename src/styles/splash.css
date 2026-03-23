@@ -1,0 +1,111 @@
+/* ══════════════════════════════════════════
+   SPLASH / ONBOARDING
+══════════════════════════════════════════ */
+#splash{
+  position:fixed;inset:0;z-index:99999;
+  background:linear-gradient(160deg,#0f3d96 0%,#0a2566 55%,#071840 100%);
+  display:flex;flex-direction:column;align-items:center;justify-content:space-between;
+  padding-top:max(env(safe-area-inset-top,0px),48px);
+  padding-bottom:max(env(safe-area-inset-bottom,0px),40px);
+  padding-left:max(env(safe-area-inset-left,0px),28px);
+  padding-right:max(env(safe-area-inset-right,0px),28px);
+  width:100%;
+  min-height:100vh;min-height:100dvh;
+  overflow:hidden;
+  transition:opacity .45s ease,transform .45s ease;
+}
+#splash::before{
+  content:'';
+  position:absolute;inset:0;
+  background:radial-gradient(ellipse 80% 50% at 50% 0%,rgba(59,130,246,0.18) 0%,transparent 70%),
+             radial-gradient(ellipse 60% 40% at 80% 100%,rgba(14,58,138,0.25) 0%,transparent 70%);
+  pointer-events:none;
+}
+#splash.hide{opacity:0;transform:scale(1.03);pointer-events:none}
+
+.splash-screens{
+  width:100%;flex:1;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  min-height:0;position:relative;z-index:1;
+  padding:0 4px;
+}
+
+.sp-screen{
+  display:none;width:100%;
+  flex-direction:column;align-items:center;text-align:center;
+  animation:spi .38s var(--spring);
+}
+.sp-screen.active{display:flex}
+@keyframes spi{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:translateY(0)}}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
+
+.btn-cta{
+  width:100%;min-height:54px;padding:14px 20px;border:none;
+  border-radius:var(--r-pill);
+  background:#ffffff;color:#0e3a8a;
+  font-size:15px;font-weight:800;letter-spacing:.01em;
+  cursor:pointer;
+  transition:opacity .12s,transform .1s,box-shadow .12s;
+  box-shadow:0 6px 28px rgba(0,0,0,0.28),0 2px 8px rgba(0,0,0,0.15);
+  -webkit-tap-highlight-color:transparent;
+  line-height:1.2;display:block;
+}
+.btn-cta:active{opacity:.86;transform:scale(.985);box-shadow:0 2px 12px rgba(0,0,0,0.2)}
+.btn-cta:disabled{opacity:.4;cursor:default}
+
+.btn-ghost{
+  width:100%;min-height:52px;padding:13px 20px;
+  border:1.5px solid rgba(255,255,255,0.25);
+  border-radius:var(--r-pill);
+  background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.75);
+  font-size:14px;font-weight:700;cursor:pointer;
+  margin-top:10px;
+  transition:all .12s;
+  -webkit-tap-highlight-color:transparent;
+  line-height:1.2;display:block;
+  backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);
+}
+.btn-ghost:active{background:rgba(255,255,255,0.12);border-color:rgba(255,255,255,0.4)}
+
+.sp-dots{display:flex;gap:6px;justify-content:center;margin-bottom:18px}
+.sp-dot{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,0.2);transition:all .28s}
+.sp-dot.active{width:20px;border-radius:4px;background:rgba(255,255,255,0.88)}
+
+.sp-loader{
+  width:100%;height:3px;
+  background:rgba(255,255,255,0.12);border-radius:2px;overflow:hidden;margin-top:28px;
+}
+.sp-loader-bar{
+  height:100%;background:rgba(255,255,255,0.8);
+  border-radius:2px;width:0%;transition:width 1s var(--ease);
+}
+
+.sp-input{
+  width:100%;
+  background:rgba(255,255,255,0.08);
+  border:1.5px solid rgba(255,255,255,0.16);
+  border-radius:14px;
+  padding:14px 16px;
+  font-size:14px;color:#fff;
+  font-family:monospace;
+  outline:none;line-height:1.5;
+  -webkit-appearance:none;
+  transition:border-color .15s;
+}
+.sp-input:focus{border-color:rgba(59,130,246,0.8)}
+.sp-input::placeholder{color:rgba(255,255,255,0.3)}
+
+/* ══════════════════════════════════════════
+   SDK LOADING OVERLAY
+══════════════════════════════════════════ */
+#sdk-loading {
+  position: fixed; inset: 0; z-index: 8000;
+  background: #0e3a8a;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 16px; font-family: inherit;
+  transition: opacity .4s ease;
+}
+#sdk-loading.fade { opacity: 0; pointer-events: none; }
+#sdk-loading-icon { width:56px;height:56px; animation: sdk-pulse 1.5s ease-in-out infinite; }
+@keyframes sdk-pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.08)} }
