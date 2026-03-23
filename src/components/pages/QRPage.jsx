@@ -6,8 +6,16 @@
 export default function QRPage() {
   return (
     <div style={{ padding: '0 20px 28px' }}>
-      <div className="pg-head"><div className="pg-title">QR</div><div className="pg-sub">Scan & receive payments</div></div>
+      <div className="pg-head"><div className="pg-title">QR Code</div><div className="pg-sub">Scan or share your address</div></div>
 
+      {/* My QR / Scan QR tabs */}
+      <div className="toggle-tabs" style={{ marginBottom: 14 }}>
+        <div className="ttab active" id="ttab-mine" onClick={() => typeof setQRTab === 'function' && setQRTab('mine')}>My QR Code</div>
+        <div className="ttab" id="ttab-scan" onClick={() => typeof setQRTab === 'function' && setQRTab('scan')}>Scan QR</div>
+      </div>
+
+      {/* ── My QR Panel ── */}
+      <div id="qr-mine-panel">
       <div className="qr-type-row" style={{ marginBottom: 16 }}>
         {['ark', 'lightning', 'onchain'].map((t, i) => (
           <div key={t} className={`qtt${i === 0 ? ' active' : ''}`} onClick={(e) => typeof setAddrType === 'function' && setAddrType(e.currentTarget, t)}>{t === 'onchain' ? 'On-chain' : t.charAt(0).toUpperCase() + t.slice(1)}</div>
@@ -78,6 +86,8 @@ export default function QRPage() {
           <button className="btns" style={{ margin: 0 }} onClick={() => typeof resetQrLnForm === 'function' && resetQrLnForm()}>New Invoice</button>
         </div>
       </div>
+
+      </div>{/* end qr-mine-panel */}
 
       {/* Scan Panel */}
       <div id="qr-scan-panel" style={{ display: 'none' }}>
