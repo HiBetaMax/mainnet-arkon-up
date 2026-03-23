@@ -1,5 +1,5 @@
-import { useEffect } from 'react'
-import useStore from './store'
+import { useEffect, useCallback } from 'react'
+import useStore from './store/index.ts'
 
 // Boot
 import SplashScreen from './components/boot/SplashScreen'
@@ -18,34 +18,34 @@ import Toast from './components/shared/Toast'
 
 export default function App() {
   const bootState = useStore((s) => s.bootState)
+  const closeAllSheets = useStore((s) => s.closeAllSheets)
 
   // Early wallet check + splash routing
   useEffect(() => {
     const v2 = localStorage.getItem('arkade_wallet_privkey_mainnet_v2_enc')
     const v1 = localStorage.getItem('arkade_wallet_privkey_mainnet_v1')
     const hasWallet = !!(v2) || !!(v1 && v1.length === 64 && /^[0-9a-fA-F]+$/.test(v1))
-    window._hasExistingWallet = hasWallet
 
     useStore.getState().setHasExistingWallet(hasWallet)
-
-    // Animate loader bar
-    const bar = document.getElementById('loader-bar')
-    setTimeout(() => { if (bar) bar.style.width = '100%' }, 80)
 
     // Remove SDK loading overlay for new users (no wallet to connect)
     function removeSdkLoading() {
       const el = document.getElementById('sdk-loading')
-      if (el) { el.classList.add('fade'); setTimeout(() => el.remove(), 400) }
+      if (el) {
+        el.classList.add('fade')
+        setTimeout(() => el.remove(), 400)
+      }
     }
 
     // Wait for main.js SDK bridge to define _bootApp, then route
+    // TODO: Once full migration is complete, replace with direct bootWallet() call
     let retries = 0
     const MAX_RETRIES = 100 // 10 seconds max
     function tryBoot() {
       if (hasWallet) {
-        if (typeof window._bootApp === 'function') {
+        if (typeof (window as any)._bootApp === 'function') {
           useStore.getState().setBootState('booting')
-          window._bootApp()
+          ;(window as any)._bootApp()
         } else if (retries < MAX_RETRIES) {
           retries++
           setTimeout(tryBoot, 100)
@@ -65,23 +65,28 @@ export default function App() {
     setTimeout(tryBoot, 360)
   }, [])
 
-  // Escape key closes all open sheets via DOM (matches ui.js pattern)
-  useEffect(() => {
-    const handler = (e) => {
+  // Escape key closes all open sheets
+  const handleEscape = useCallback(
+    (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        document.querySelectorAll('.overlay.open').forEach(el => el.classList.remove('open'))
+        closeAllSheets()
+        // Also close DOM-based sheets (legacy compat)
+        document.querySelectorAll('.overlay.open').forEach((el) => el.classList.remove('open'))
       }
-    }
-    window.addEventListener('keydown', handler)
-    return () => window.removeEventListener('keydown', handler)
-  }, [])
+    },
+    [closeAllSheets]
+  )
+
+  useEffect(() => {
+    window.addEventListener('keydown', handleEscape)
+    return () => window.removeEventListener('keydown', handleEscape)
+  }, [handleEscape])
 
   const showApp = bootState === 'booting' || bootState === 'ready'
 
   return (
     <>
       <SplashScreen />
-      {/* #sdk-loading is in index.html (outside React) so main.js can safely remove it */}
       <div id="app" style={{ opacity: showApp ? 1 : 0 }}>
         <TopBar />
         <Content />

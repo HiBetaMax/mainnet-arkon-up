@@ -1,10 +1,14 @@
-/**
- * BottomNav — purely structural.
- * Renders nav items with correct IDs.
- * ui.js showPage() controls the .active class via DOM.
- * React does NOT control active state.
- */
-const NAV_ITEMS = [
+import { useCallback, type ReactNode } from 'react'
+import useStore from '../../store/index.ts'
+import type { Page } from '../../store/index.ts'
+
+interface NavItem {
+  id: Page
+  label: string
+  icon: ReactNode
+}
+
+const NAV_ITEMS: NavItem[] = [
   {
     id: 'home',
     label: 'Home',
@@ -66,6 +70,32 @@ const NAV_ITEMS = [
 ]
 
 export default function BottomNav() {
+  const setActivePage = useStore((s) => s.setActivePage)
+
+  const handleNav = useCallback(
+    (id: Page) => {
+      setActivePage(id)
+      // Legacy compat: toggle DOM classes for CSS transitions
+      document.querySelectorAll('.page').forEach((x) => x.classList.remove('active'))
+      document.querySelectorAll('.ni').forEach((x) => x.classList.remove('active'))
+      document.getElementById(`page-${id}`)?.classList.add('active')
+      document.getElementById(`nav-${id}`)?.classList.add('active')
+
+      // Scroll content to top
+      const content = document.getElementById('content')
+      if (content) content.scrollTop = 0
+
+      // Legacy: trigger QR init or tx refresh
+      if (id === 'qr' && typeof (window as any).initMainQR === 'function') {
+        ;(window as any).initMainQR()
+      }
+      if (id === 'transactions' && typeof (window as any).refreshTransactionsPage === 'function') {
+        ;(window as any).refreshTransactionsPage()
+      }
+    },
+    [setActivePage]
+  )
+
   return (
     <div id="bnav">
       {NAV_ITEMS.map((item) => (
@@ -73,7 +103,7 @@ export default function BottomNav() {
           key={item.id}
           id={`nav-${item.id}`}
           className={`ni${item.id === 'home' ? ' active' : ''}`}
-          onClick={() => typeof showPage === 'function' && showPage(item.id)}
+          onClick={() => handleNav(item.id)}
         >
           <div className="nbar" />
           {item.icon}

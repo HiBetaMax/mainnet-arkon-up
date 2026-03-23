@@ -3,8 +3,8 @@ import { useState, useRef, useCallback } from 'react'
 export default function UnlockGate() {
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
-  const inputRef = useRef(null)
-  const gateRef = useRef(null)
+  const inputRef = useRef<HTMLInputElement>(null)
+  const gateRef = useRef<HTMLDivElement>(null)
 
   const handleSubmit = useCallback(async () => {
     const password = inputRef.current?.value?.trim() || ''
@@ -15,12 +15,10 @@ export default function UnlockGate() {
     setSubmitting(true)
     setError('')
     try {
-      // main.js wires this up via submitUnlockGate()
-      // But we also handle it here for React flow
-      if (typeof window._unlockWallet === 'function') {
-        await window._unlockWallet(password)
+      if (typeof (window as any)._unlockWallet === 'function') {
+        await (window as any)._unlockWallet(password)
         gateRef.current?.classList.remove('open')
-        inputRef.current.value = ''
+        if (inputRef.current) inputRef.current.value = ''
       }
     } catch {
       setError('Incorrect password')
@@ -29,9 +27,12 @@ export default function UnlockGate() {
     }
   }, [])
 
-  const handleKeyDown = useCallback((e) => {
-    if (e.key === 'Enter') handleSubmit()
-  }, [handleSubmit])
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === 'Enter') handleSubmit()
+    },
+    [handleSubmit]
+  )
 
   return (
     <div id="wallet-unlock-gate" className="wallet-unlock-gate" ref={gateRef} aria-hidden="true">
@@ -44,7 +45,9 @@ export default function UnlockGate() {
           </svg>
         </div>
         <div className="wallet-unlock-title">Unlock your wallet</div>
-        <div className="wallet-unlock-subtitle">This wallet is password protected. Enter your password to open your wallet and continue.</div>
+        <div className="wallet-unlock-subtitle">
+          This wallet is password protected. Enter your password to open your wallet and continue.
+        </div>
         <input
           ref={inputRef}
           id="wallet-unlock-password"
@@ -54,7 +57,9 @@ export default function UnlockGate() {
           autoComplete="current-password"
           onKeyDown={handleKeyDown}
         />
-        <div id="wallet-unlock-error" className="wallet-unlock-error">{error}</div>
+        <div id="wallet-unlock-error" className="wallet-unlock-error">
+          {error}
+        </div>
         <button
           id="wallet-unlock-submit"
           className="wallet-unlock-button"
