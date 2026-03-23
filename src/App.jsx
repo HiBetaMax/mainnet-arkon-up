@@ -32,17 +32,31 @@ export default function App() {
     const bar = document.getElementById('loader-bar')
     setTimeout(() => { if (bar) bar.style.width = '100%' }, 80)
 
+    // Remove SDK loading overlay for new users (no wallet to connect)
+    function removeSdkLoading() {
+      const el = document.getElementById('sdk-loading')
+      if (el) { el.classList.add('fade'); setTimeout(() => el.remove(), 400) }
+    }
+
     // Wait for main.js SDK bridge to define _bootApp, then route
+    let retries = 0
+    const MAX_RETRIES = 100 // 10 seconds max
     function tryBoot() {
       if (hasWallet) {
         if (typeof window._bootApp === 'function') {
           useStore.getState().setBootState('booting')
           window._bootApp()
-        } else {
-          // main.js hasn't loaded yet — retry every 100ms
+        } else if (retries < MAX_RETRIES) {
+          retries++
           setTimeout(tryBoot, 100)
+        } else {
+          console.error('[ArkON] _bootApp never became available after 10s')
+          removeSdkLoading()
+          useStore.getState().setBootState('splash')
+          useStore.getState().setSplashStep(2)
         }
       } else {
+        removeSdkLoading()
         useStore.getState().setSplashStep(2)
       }
     }

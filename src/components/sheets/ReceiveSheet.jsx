@@ -12,7 +12,7 @@ export default function ReceiveSheet() {
         <div className="sht-qr"><div className="sht-qr-inner"><div id="rcv-qr" /></div></div>
         <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.06em', color: 'var(--t3)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '10px 0 6px' }}>
           <span id="rcv-addr-lbl">Ark Address</span>
-          <button className="addr-reveal-btn" onClick={() => typeof toggleAddrBlur === 'function' && toggleAddrBlur('rcv-addr', event?.currentTarget)} title="Show/hide address">
+          <button className="addr-reveal-btn" onClick={(e) => typeof toggleAddrBlur === 'function' && toggleAddrBlur('rcv-addr', e.currentTarget)} title="Show/hide address">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 15, height: 15 }}><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" /></svg>
           </button>
         </div>
@@ -30,7 +30,8 @@ export default function ReceiveSheet() {
             <div style={{ padding: '4px 0 10px', color: 'var(--t3)', fontSize: 12, lineHeight: 1.5 }}>Create a real Lightning invoice that settles into your Ark wallet through Arkade/Boltz.</div>
             <div id="rcv-ln-amt-wrap" />
             <div className="fld"><label className="flbl">Description (optional)</label><input className="finp" id="ln-memo" maxLength={120} placeholder="e.g. Coffee payment" /></div>
-            <div id="ln-gen-wrap"><button className="btnp" id="ln-gen-btn" onClick={() => typeof genLnInvoice === 'function' && genLnInvoice()} disabled>Generate Lightning Invoice</button></div>
+            {/* disabled state controlled by ui.js updateLnPreview() — do NOT set disabled here or React will override */}
+            <div id="ln-gen-wrap"><button className="btnp" id="ln-gen-btn" onClick={() => typeof genLnInvoice === 'function' && genLnInvoice()} style={{ opacity: 0.5 }}>Generate Lightning Invoice</button></div>
           </div>
         </div>
         <div id="ln-invoice-area" style={{ display: 'none' }}>

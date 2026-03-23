@@ -759,6 +759,8 @@ function openSheet(t) {
   if (t === 'receive') {
     // Render amount fields for current mode first
     updateRcvAmountFields();
+    // Set initial disabled state on ln-gen-btn (React no longer sets disabled)
+    updateLnPreview();
     // Always regenerate QR with current live address
     setTimeout(() => {
       const qrEl = document.getElementById('rcv-qr');
@@ -1230,15 +1232,23 @@ function updateLnPreview() {
 }
 
 async function genLnInvoice() {
-  const amt = parseInt(document.getElementById('ln-req-amt').value) || 0;
+  const amtEl = document.getElementById('ln-req-amt');
+  const amt = parseInt(amtEl?.value) || 0;
   if (!amt) { showToast('Enter an amount first'); return; }
-  const memo = document.getElementById('ln-memo').value || '';
+  if (typeof window._generateLightningInvoice !== 'function') {
+    showToast('Lightning not ready — wallet still loading');
+    console.error('[ArkON] _generateLightningInvoice not available');
+    return;
+  }
+  const memo = document.getElementById('ln-memo')?.value || '';
   const btn = document.getElementById('ln-gen-btn');
   const status = document.getElementById('ln-status');
   const area = document.getElementById('ln-invoice-area');
   if (btn) { btn.disabled = true; btn.style.opacity = '.6'; btn.textContent = 'Generating…'; }
   try {
+    console.log('[ArkON] Generating Lightning invoice for', amt, 'sats');
     const result = await window._generateLightningInvoice({ amount: amt, description: memo });
+    console.log('[ArkON] Lightning invoice result:', result ? 'OK' : 'empty');
     const invoice = result?.invoice || '';
     if (!invoice) throw new Error('No invoice returned');
     document.getElementById('ln-invoice-val').textContent = invoice;

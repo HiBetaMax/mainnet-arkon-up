@@ -5,54 +5,45 @@ export default function SplashScreen() {
   const splashStep = useStore((s) => s.splashStep)
   const setSplashStep = useStore((s) => s.setSplashStep)
   const [hiding, setHiding] = useState(false)
-  const [backupChecked, setBackupChecked] = useState(false)
   const [restoreError, setRestoreError] = useState('')
   const [creating, setCreating] = useState(false)
   const [restoring, setRestoring] = useState(false)
-  const newKeyRef = useRef(null)
   const restoreInputRef = useRef(null)
-
-  const generateKey = useCallback(() => {
-    const bytes = new Uint8Array(32)
-    crypto.getRandomValues(bytes)
-    const hex = Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('')
-    newKeyRef.current = hex
-    return hex
-  }, [])
-
-  const advSplash = useCallback((step) => {
-    if (step === 3) generateKey()
-    setSplashStep(step)
-  }, [setSplashStep, generateKey])
 
   const splashDone = useCallback(() => {
     setHiding(true)
     setTimeout(() => {
       useStore.getState().setBootState('booting')
-      // Wait for _bootApp to be ready (main.js may still be loading)
+      let retries = 0
       function tryBoot() {
         if (typeof window._bootApp === 'function') {
           window._bootApp()
-        } else {
+        } else if (retries < 100) {
+          retries++
           setTimeout(tryBoot, 100)
+        } else {
+          console.error('[ArkON] _bootApp not available after 10s')
         }
       }
       tryBoot()
     }, 500)
   }, [])
 
-  const finishCreate = useCallback(async () => {
-    if (!newKeyRef.current) { window.showToast('Key not generated yet'); return }
+  const handleCreate = useCallback(async () => {
     setCreating(true)
     try {
+      // Generate key silently — user can view/backup later in Settings > Backup
+      const bytes = new Uint8Array(32)
+      crypto.getRandomValues(bytes)
+      const hex = Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('')
+
       if (typeof window._restoreFromPrivKey !== 'function') throw new Error('Wallet not ready')
-      const ok = await window._restoreFromPrivKey(newKeyRef.current)
+      const ok = await window._restoreFromPrivKey(hex)
       if (!ok) throw new Error('Key storage failed')
-      newKeyRef.current = null
       splashDone()
     } catch (e) {
-      console.error('[ArkON] Failed to save key:', e)
-      window.showToast('Error saving wallet key')
+      console.error('[ArkON] Failed to create wallet:', e)
+      if (typeof showToast === 'function') showToast('Error creating wallet')
       setCreating(false)
     }
   }, [splashDone])
@@ -129,40 +120,15 @@ export default function SplashScreen() {
             ))}
           </div>
           <div style={{ width: '100%', maxWidth: 320, marginTop: 28, display: 'flex', flexDirection: 'column', gap: 10 }}>
-            <button className="btn-cta" onClick={() => advSplash(3)}>Create New Wallet</button>
-            <button className="btn-ghost" onClick={() => advSplash(4)}>Restore Existing Wallet</button>
+            <button className="btn-cta" onClick={handleCreate} disabled={creating}>
+              {creating ? 'Creating wallet\u2026' : 'Create New Wallet'}
+            </button>
+            <button className="btn-ghost" onClick={() => setSplashStep(3)} disabled={creating}>Restore Existing Wallet</button>
           </div>
         </div>
 
-        {/* Screen 3 — Create Wallet Backup */}
+        {/* Screen 3 — Restore Wallet */}
         <div className={`sp-screen${splashStep === 3 ? ' active' : ''}`} id="sp3">
-          <div style={{ fontSize: 20, fontWeight: 800, color: '#fff', marginBottom: 6 }}>Your Private Key</div>
-          <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', marginBottom: 18, textAlign: 'center', maxWidth: 300 }}>
-            This is the only way to access your wallet. Back it up securely.
-          </div>
-          <div id="sp-new-key-display" style={{ fontFamily: 'monospace', fontSize: 11, color: '#fff', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 12, padding: '14px 16px', wordBreak: 'break-all', userSelect: 'all', maxWidth: 320, textAlign: 'center', lineHeight: 1.6 }}>
-            {newKeyRef.current || ''}
-          </div>
-          <div style={{ background: 'rgba(224,149,61,0.12)', border: '1px solid rgba(224,149,61,0.3)', borderRadius: 10, padding: '10px 14px', marginTop: 14, maxWidth: 320 }}>
-            <div style={{ fontSize: 11, color: '#e0953d', fontWeight: 600 }}>Never share your private key with anyone.</div>
-          </div>
-          <label id="sp-backup-label" style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 18, cursor: 'pointer' }}>
-            <input type="checkbox" id="sp-backup-check" checked={backupChecked} onChange={(e) => setBackupChecked(e.target.checked)} style={{ width: 18, height: 18, accentColor: '#3b82f6' }} />
-            <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)' }}>I have backed up my private key</span>
-          </label>
-          <button
-            id="sp-create-continue"
-            className="btn-cta"
-            disabled={!backupChecked || creating}
-            onClick={finishCreate}
-            style={{ marginTop: 18, width: '100%', maxWidth: 320, opacity: backupChecked ? 1 : 0.3 }}
-          >
-            {creating ? 'Creating wallet\u2026' : 'Continue'}
-          </button>
-        </div>
-
-        {/* Screen 4 — Restore Wallet */}
-        <div className={`sp-screen${splashStep === 4 ? ' active' : ''}`} id="sp4">
           <div style={{ fontSize: 20, fontWeight: 800, color: '#fff', marginBottom: 6 }}>Restore Wallet</div>
           <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', marginBottom: 18, textAlign: 'center', maxWidth: 300 }}>
             Enter your 64-character hex private key to restore your wallet.
@@ -195,7 +161,7 @@ export default function SplashScreen() {
       {/* Footer dots */}
       <div id="sp-footer" style={{ visibility: splashStep >= 2 ? 'visible' : 'hidden' }}>
         <div id="sp-dots" style={{ display: 'flex', gap: 6, justifyContent: 'center', paddingBottom: 32 }}>
-          {[1, 2, 3, 4].map(i => (
+          {[1, 2, 3].map(i => (
             <div key={i} className="sp-dot" style={{
               width: splashStep === i ? 20 : 6,
               height: 6,

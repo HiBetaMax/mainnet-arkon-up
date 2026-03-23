@@ -7,11 +7,11 @@
 <!-- Content Security Policy: restrict what can run/load in this app -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'self' blob:;
-  script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com;
+  script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com;
   style-src 'self' 'unsafe-inline';
   font-src 'self';
   img-src 'self' blob: data:;
-  connect-src 'self' https://arkade.computer wss://arkade.computer https://api.kraken.com https://api.coingecko.com https://mempool.space https://boltz.exchange https://api.ark.boltz.exchange https://api.boltz.exchange;
+  connect-src 'self' https://arkade.computer wss://arkade.computer https://api.kraken.com https://api.coingecko.com https://mempool.space https://boltz.exchange https://api.ark.boltz.exchange wss://api.ark.boltz.exchange https://api.boltz.exchange wss://api.boltz.exchange wss://localhost:* ws://localhost:* http://localhost:*;
   frame-src 'none';
   object-src 'none';
   base-uri 'self';
@@ -27,7 +27,7 @@
 </head>
 <body>
   <!-- SDK loading overlay — outside React so main.js can safely remove it -->
-  <div id="sdk-loading" style="position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;background:#050d1a">
+  <div id="sdk-loading" style="position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;background:#050d1a;transition:opacity 0.4s ease">
     <svg viewBox="0 0 88 88" fill="none" xmlns="http://www.w3.org/2000/svg" id="sdk-loading-icon" style="width:64px;height:64px;animation:bob 4s ease-in-out infinite">
       <rect width="88" height="88" rx="24" fill="rgba(255,255,255,0.12)"/>
       <rect x="16" y="28" width="56" height="34" rx="6" fill="white" fill-opacity="0.9"/>

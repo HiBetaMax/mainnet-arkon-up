@@ -1,5 +1,3 @@
-import { useRef, useEffect } from 'react'
-
 export default function ChartCard() {
   return (
     <div className="chart-card" id="chart-card">
