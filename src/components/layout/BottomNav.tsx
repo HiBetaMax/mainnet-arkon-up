@@ -1,10 +1,14 @@
-/**
- * BottomNav — purely structural.
- * Renders nav items with correct IDs.
- * ui.js showPage() controls the .active class via DOM.
- * React does NOT control active state.
- */
-const NAV_ITEMS = [
+import { useCallback, type ReactNode } from 'react'
+import useStore from '../../store'
+import type { Page } from '../../store'
+
+interface NavItem {
+  id: Page
+  label: string
+  icon: ReactNode
+}
+
+const NAV_ITEMS: NavItem[] = [
   {
     id: 'home',
     label: 'Home',
@@ -66,14 +70,36 @@ const NAV_ITEMS = [
 ]
 
 export default function BottomNav() {
+  const activePage = useStore((s) => s.activePage)
+  const setActivePage = useStore((s) => s.setActivePage)
+
+  const handleNav = useCallback(
+    (id: Page) => {
+      setActivePage(id)
+
+      // Scroll content to top
+      const content = document.getElementById('content')
+      if (content) content.scrollTop = 0
+
+      // Legacy: trigger QR init or tx refresh
+      if (id === 'qr' && typeof (window as any).initMainQR === 'function') {
+        ;(window as any).initMainQR()
+      }
+      if (id === 'transactions' && typeof (window as any).refreshTransactionsPage === 'function') {
+        ;(window as any).refreshTransactionsPage()
+      }
+    },
+    [setActivePage]
+  )
+
   return (
     <div id="bnav">
       {NAV_ITEMS.map((item) => (
         <div
           key={item.id}
           id={`nav-${item.id}`}
-          className={`ni${item.id === 'home' ? ' active' : ''}`}
-          onClick={() => typeof showPage === 'function' && showPage(item.id)}
+          className={`ni${activePage === item.id ? ' active' : ''}`}
+          onClick={() => handleNav(item.id)}
         >
           <div className="nbar" />
           {item.icon}

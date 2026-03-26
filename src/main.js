@@ -341,6 +341,10 @@ async function boot() {
       getBoardingAddress(),
     ])
 
+    // Store on window so React can re-trigger after mount
+    window._arkAddr = arkAddr
+    window._boardingAddr = boardingAddr
+
     if (window._setLiveAddresses) {
       window._setLiveAddresses(arkAddr, boardingAddr)
     }
@@ -380,6 +384,8 @@ async function boot() {
     startPolling()
     // FIX #12 — wire VTXO renewal and recovery
     startVtxoManager()
+    // Signal React that boot is complete
+    if (typeof window._onBootReady === 'function') window._onBootReady()
   } catch (err) {
     console.error('[ArkON] Boot error:', err)
     showBootError(err)

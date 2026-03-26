@@ -13,7 +13,7 @@ function PersonalizeSheet() {
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" /></svg>
           </div>
           <div className="sr-text"><div className="sr-nm">Dark Mode</div></div>
-          <div className="tog on" id="dm-tog" onClick={() => typeof toggleDark === 'function' && toggleDark()} />
+          <div className="tog on" id="dm-tog" onClick={() => typeof (window as any).toggleDark === 'function' && (window as any).toggleDark()} />
         </div>
         {/* Balance display mode */}
         <div className="sr" style={{ cursor: 'default', flexDirection: 'column', alignItems: 'stretch', gap: 10 }}>
@@ -24,9 +24,9 @@ function PersonalizeSheet() {
             <div className="sr-text"><div className="sr-nm">Home Balance</div><div className="sr-sb">Choose what to show on the home screen</div></div>
           </div>
           <div className="bdm-row" style={{ marginLeft: 46 }}>
-            <button className="bdm-opt" id="bdm-fiat" onClick={() => typeof setBalDisplay === 'function' && setBalDisplay('fiat')}>Fiat</button>
-            <button className="bdm-opt active" id="bdm-both" onClick={() => typeof setBalDisplay === 'function' && setBalDisplay('both')}>Both</button>
-            <button className="bdm-opt" id="bdm-sats" onClick={() => typeof setBalDisplay === 'function' && setBalDisplay('sats')}>Sats</button>
+            <button className="bdm-opt" id="bdm-fiat" onClick={() => typeof (window as any).setBalDisplay === 'function' && (window as any).setBalDisplay('fiat')}>Fiat</button>
+            <button className="bdm-opt active" id="bdm-both" onClick={() => typeof (window as any).setBalDisplay === 'function' && (window as any).setBalDisplay('both')}>Both</button>
+            <button className="bdm-opt" id="bdm-sats" onClick={() => typeof (window as any).setBalDisplay === 'function' && (window as any).setBalDisplay('sats')}>Sats</button>
           </div>
         </div>
         {/* Currency row */}
@@ -35,7 +35,7 @@ function PersonalizeSheet() {
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="10" /><line x1="2" y1="12" x2="22" y2="12" /><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z" /></svg>
           </div>
           <div className="sr-text"><div className="sr-nm">Currency</div></div>
-          <select className="cur-setting-sel" id="cur-settings-sel" onChange={(e) => typeof setCurSettings === 'function' && setCurSettings(e.target)}>
+          <select className="cur-setting-sel" id="cur-settings-sel" onChange={(e) => typeof (window as any).setCurSettings === 'function' && (window as any).setCurSettings(e.target)}>
             <option value="USD">USD</option>
             <option value="EUR">EUR</option>
             <option value="CHF">CHF</option>
@@ -65,7 +65,7 @@ function PersonalizeSheet() {
               { name: 'blue', bg: '#3b82f6' },
               { name: 'purple', bg: '#a855f7' },
             ].map(s => (
-              <button key={s.name} onClick={() => typeof setColorScheme === 'function' && setColorScheme(s.name)} data-scheme-btn={s.name}
+              <button key={s.name} onClick={() => typeof (window as any).setColorScheme === 'function' && (window as any).setColorScheme(s.name)} data-scheme-btn={s.name}
                 style={{ width: 36, height: 36, borderRadius: '50%', background: s.bg, border: '3px solid transparent', cursor: 'pointer', transition: 'border-color .15s' }} />
             ))}
           </div>
@@ -89,7 +89,7 @@ function BackupSheet() {
 /* ─── About ─── */
 function AboutSheet() {
   const CopyBtn = ({ text }) => (
-    <button onClick={() => navigator.clipboard.writeText(text).then(() => typeof showToast === 'function' && showToast('Copied ✓'))}
+    <button onClick={() => navigator.clipboard.writeText(text).then(() => typeof (window as any).showToast === 'function' && (window as any).showToast('Copied ✓'))}
       style={{ flexShrink: 0, width: 30, height: 30, borderRadius: 8, background: 'var(--accs)', border: '1px solid var(--acc)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--acc2)' }}>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 13, height: 13 }}><rect x="9" y="9" width="13" height="13" rx="2" /><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" /></svg>
     </button>
@@ -152,7 +152,7 @@ function NotificationsSheet() {
               <div className="notif-row-nm">{r.name}</div>
               <div className="notif-row-sb">{r.sub}</div>
             </div>
-            <div className={`tog${r.on ? ' on' : ''}`} id={`notif-tog-${r.id}`} onClick={(e) => typeof toggleNotifPref === 'function' && toggleNotifPref(r.id, e.currentTarget)} />
+            <div className={`tog${r.on ? ' on' : ''}`} id={`notif-tog-${r.id}`} onClick={(e) => typeof (window as any).toggleNotifPref === 'function' && (window as any).toggleNotifPref(r.id, e.currentTarget)} />
           </div>
         ))}
       </div>
@@ -163,7 +163,7 @@ function NotificationsSheet() {
 /* ─── Server Info ─── */
 function ServerInfoSheet() {
   const CopyBtn2 = ({ getText }) => (
-    <button onClick={() => navigator.clipboard.writeText(getText()).then(() => typeof showToast === 'function' && showToast('Copied ✓'))}
+    <button onClick={() => navigator.clipboard.writeText(getText()).then(() => typeof (window as any).showToast === 'function' && (window as any).showToast('Copied ✓'))}
       style={{ flexShrink: 0, width: 28, height: 28, borderRadius: 8, background: 'var(--accs)', border: '1px solid var(--acc)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--acc2)' }}>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 12, height: 12 }}><rect x="9" y="9" width="13" height="13" rx="2" /><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" /></svg>
     </button>
@@ -213,11 +213,11 @@ function ExportSheet() {
       <div style={{ marginBottom: 16 }}>
         <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--t3)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 10 }}>Date Range</div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }} id="export-preset-grid">
-          <button className="export-preset active" data-preset="30d" onClick={(e) => typeof selectExportPreset === 'function' && selectExportPreset(e.currentTarget, '30d')}>Last 30 Days</button>
-          <button className="export-preset" data-preset="month" onClick={(e) => typeof selectExportPreset === 'function' && selectExportPreset(e.currentTarget, 'month')}>Last Month</button>
-          <button className="export-preset" data-preset="quarter" onClick={(e) => typeof selectExportPreset === 'function' && selectExportPreset(e.currentTarget, 'quarter')}>Last Quarter</button>
-          <button className="export-preset" data-preset="year" onClick={(e) => typeof selectExportPreset === 'function' && selectExportPreset(e.currentTarget, 'year')}>Last Year</button>
-          <button className="export-preset" data-preset="all" onClick={(e) => typeof selectExportPreset === 'function' && selectExportPreset(e.currentTarget, 'all')} style={{ gridColumn: 'span 2' }}>All Time</button>
+          <button className="export-preset active" data-preset="30d" onClick={(e) => typeof (window as any).selectExportPreset === 'function' && (window as any).selectExportPreset(e.currentTarget, '30d')}>Last 30 Days</button>
+          <button className="export-preset" data-preset="month" onClick={(e) => typeof (window as any).selectExportPreset === 'function' && (window as any).selectExportPreset(e.currentTarget, 'month')}>Last Month</button>
+          <button className="export-preset" data-preset="quarter" onClick={(e) => typeof (window as any).selectExportPreset === 'function' && (window as any).selectExportPreset(e.currentTarget, 'quarter')}>Last Quarter</button>
+          <button className="export-preset" data-preset="year" onClick={(e) => typeof (window as any).selectExportPreset === 'function' && (window as any).selectExportPreset(e.currentTarget, 'year')}>Last Year</button>
+          <button className="export-preset" data-preset="all" onClick={(e) => typeof (window as any).selectExportPreset === 'function' && (window as any).selectExportPreset(e.currentTarget, 'all')} style={{ gridColumn: 'span 2' }}>All Time</button>
         </div>
       </div>
       {/* Custom date range */}
@@ -226,11 +226,11 @@ function ExportSheet() {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
           <div className="fld" style={{ margin: 0 }}>
             <label className="flbl" style={{ fontSize: 11 }}>From</label>
-            <input className="finp" type="date" id="export-from" style={{ fontSize: 13 }} onInput={() => typeof selectExportPreset === 'function' && selectExportPreset(null, 'custom')} />
+            <input className="finp" type="date" id="export-from" style={{ fontSize: 13 }} onInput={() => typeof (window as any).selectExportPreset === 'function' && (window as any).selectExportPreset(null, 'custom')} />
           </div>
           <div className="fld" style={{ margin: 0 }}>
             <label className="flbl" style={{ fontSize: 11 }}>To</label>
-            <input className="finp" type="date" id="export-to" style={{ fontSize: 13 }} onInput={() => typeof selectExportPreset === 'function' && selectExportPreset(null, 'custom')} />
+            <input className="finp" type="date" id="export-to" style={{ fontSize: 13 }} onInput={() => typeof (window as any).selectExportPreset === 'function' && (window as any).selectExportPreset(null, 'custom')} />
           </div>
         </div>
       </div>
@@ -238,11 +238,11 @@ function ExportSheet() {
       <div style={{ marginBottom: 20 }}>
         <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--t3)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 10 }}>Format</div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-          <button className="export-preset active" id="export-fmt-csv" onClick={() => typeof selectExportFmt === 'function' && selectExportFmt('csv')}>
+          <button className="export-preset active" id="export-fmt-csv" onClick={() => typeof (window as any).selectExportFmt === 'function' && (window as any).selectExportFmt('csv')}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 14, height: 14, display: 'inline', verticalAlign: 'middle', marginRight: 4 }}><rect x="3" y="3" width="18" height="18" rx="2" /><path d="M3 9h18M3 15h18M9 3v18" /></svg>
             CSV
           </button>
-          <button className="export-preset" id="export-fmt-pdf" onClick={() => typeof selectExportFmt === 'function' && selectExportFmt('pdf')}>
+          <button className="export-preset" id="export-fmt-pdf" onClick={() => typeof (window as any).selectExportFmt === 'function' && (window as any).selectExportFmt('pdf')}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 14, height: 14, display: 'inline', verticalAlign: 'middle', marginRight: 4 }}><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" /><polyline points="14 2 14 8 20 8" /></svg>
             PDF
           </button>
@@ -253,11 +253,11 @@ function ExportSheet() {
         <div style={{ fontWeight: 700, color: 'var(--t1)', marginBottom: 6 }} id="export-preview-title">Select a range to preview</div>
         <div id="export-preview-body" style={{ color: 'var(--t3)' }}>—</div>
       </div>
-      <button className="btnp" onClick={() => typeof runExport === 'function' && runExport()} id="export-run-btn" style={{ height: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+      <button className="btnp" onClick={() => typeof (window as any).runExport === 'function' && (window as any).runExport()} id="export-run-btn" style={{ height: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ width: 16, height: 16, flexShrink: 0 }}><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
         <span id="export-run-label">Download Export</span>
       </button>
-      <button className="btns" onClick={() => typeof closeSheet === 'function' && closeSheet('export')}>Cancel</button>
+      <button className="btns" onClick={() => typeof (window as any).closeSheet === 'function' && (window as any).closeSheet('export')}>Cancel</button>
     </SheetWrapper>
   )
 }
@@ -290,7 +290,7 @@ function AdvancedSheet() {
             <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--t1)' }}>Coin Control / VTXO Health</div>
             <div style={{ fontSize: 11, color: 'var(--t3)', marginTop: 3 }}>Renew, recover, and inspect spendable virtual coins.</div>
           </div>
-          <button onClick={() => typeof refreshAdvancedVtxoPanel === 'function' && refreshAdvancedVtxoPanel()} style={{ height: 34, padding: '0 12px', borderRadius: 10, background: 'var(--accs)', border: '1px solid var(--acc)', color: 'var(--acc2)', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>Refresh</button>
+          <button onClick={() => typeof (window as any).refreshAdvancedVtxoPanel === 'function' && (window as any).refreshAdvancedVtxoPanel()} style={{ height: 34, padding: '0 12px', borderRadius: 10, background: 'var(--accs)', border: '1px solid var(--acc)', color: 'var(--acc2)', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>Refresh</button>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 12 }}>
           <div style={{ background: 'var(--bg3)', borderRadius: 12, padding: '10px 12px' }}><div style={{ fontSize: 10, color: 'var(--t3)', textTransform: 'uppercase', letterSpacing: '.06em' }}>Spendable</div><div id="adv-vtxo-spendable" style={{ marginTop: 4, fontSize: 15, fontWeight: 800, color: 'var(--t1)' }}>—</div></div>
@@ -303,8 +303,8 @@ function AdvancedSheet() {
           <strong id="adv-vtxo-subdust" style={{ fontSize: 13, color: 'var(--t1)' }}>—</strong>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 8 }}>
-          <button onClick={() => typeof doRenewVtxos === 'function' && doRenewVtxos()} style={{ height: 42, borderRadius: 12, background: 'var(--acc)', border: 0, color: '#fff', fontSize: 13, fontWeight: 800, cursor: 'pointer' }}>Renew expiring</button>
-          <button onClick={() => typeof doRecoverVtxos === 'function' && doRecoverVtxos()} style={{ height: 42, borderRadius: 12, background: 'var(--grn)', border: 0, color: '#08130c', fontSize: 13, fontWeight: 800, cursor: 'pointer' }}>Recover swept</button>
+          <button onClick={() => typeof (window as any).doRenewVtxos === 'function' && (window as any).doRenewVtxos()} style={{ height: 42, borderRadius: 12, background: 'var(--acc)', border: 0, color: '#fff', fontSize: 13, fontWeight: 800, cursor: 'pointer' }}>Renew expiring</button>
+          <button onClick={() => typeof (window as any).doRecoverVtxos === 'function' && (window as any).doRecoverVtxos()} style={{ height: 42, borderRadius: 12, background: 'var(--grn)', border: 0, color: '#08130c', fontSize: 13, fontWeight: 800, cursor: 'pointer' }}>Recover swept</button>
         </div>
         <div style={{ fontSize: 11, color: 'var(--t3)', lineHeight: 1.5 }}>Manual per-VTXO selection is not exposed yet, but this gives you practical coin control for health, renewal, and recovery.</div>
       </div>
@@ -323,7 +323,7 @@ function PasswordSettingsSheet() {
             <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--t1)' }}>Require password on open</div>
             <div style={{ fontSize: 12, color: 'var(--t2)', marginTop: 4 }} id="password-sheet-status">No password required</div>
           </div>
-          <div className="tog" id="password-sheet-toggle" data-password-toggle="" onClick={(e) => { e.stopPropagation(); typeof togglePasswordSheetToggle === 'function' && togglePasswordSheetToggle(e.currentTarget) }} />
+          <div className="tog" id="password-sheet-toggle" data-password-toggle="" onClick={(e) => { e.stopPropagation(); typeof (window as any).togglePasswordSheetToggle === 'function' && (window as any).togglePasswordSheetToggle(e.currentTarget) }} />
         </div>
         <div style={{ fontSize: 11, color: 'var(--t3)', lineHeight: 1.5, marginTop: 12 }}>Turn this on to ask for your password when the app opens. Turn it off to open the wallet without a password.</div>
       </div>
@@ -342,8 +342,8 @@ function PasswordSettingsSheet() {
         <div style={{ fontSize: 11, color: 'var(--t3)', lineHeight: 1.5, marginTop: 10 }}>Use at least 8 characters. The wallet will ask for this password only when opening the app.</div>
       </div>
       <div style={{ display: 'grid', gap: 10 }}>
-        <button onClick={() => typeof savePasswordSettings === 'function' && savePasswordSettings()} style={{ height: 46, borderRadius: 14, background: 'var(--acc)', border: 0, color: '#fff', fontSize: 14, fontWeight: 800, cursor: 'pointer' }}>Save Password Setting</button>
-        <button onClick={() => typeof closeSheet === 'function' && closeSheet('passwordsettings')} style={{ height: 44, borderRadius: 14, background: 'var(--bg3)', border: '1px solid var(--bdr)', color: 'var(--t2)', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>Cancel</button>
+        <button onClick={() => typeof (window as any).savePasswordSettings === 'function' && (window as any).savePasswordSettings()} style={{ height: 46, borderRadius: 14, background: 'var(--acc)', border: 0, color: '#fff', fontSize: 14, fontWeight: 800, cursor: 'pointer' }}>Save Password Setting</button>
+        <button onClick={() => typeof (window as any).closeSheet === 'function' && (window as any).closeSheet('passwordsettings')} style={{ height: 44, borderRadius: 14, background: 'var(--bg3)', border: '1px solid var(--bdr)', color: 'var(--t2)', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>Cancel</button>
       </div>
     </SheetWrapper>
   )
@@ -358,8 +358,8 @@ function RenameSheet() {
         <input className="finp" id="wallet-name-input" placeholder="e.g. My Savings" maxLength={32} />
       </div>
       <div style={{ fontSize: 11, color: 'var(--t3)', margin: '-10px 0 18px' }}>This name is stored locally on your device only.</div>
-      <button className="btnp" onClick={() => typeof saveWalletName === 'function' && saveWalletName()}>Save Name</button>
-      <button className="btns" onClick={() => typeof closeSheet === 'function' && closeSheet('rename')}>Cancel</button>
+      <button className="btnp" onClick={() => typeof (window as any).saveWalletName === 'function' && (window as any).saveWalletName()}>Save Name</button>
+      <button className="btns" onClick={() => typeof (window as any).closeSheet === 'function' && (window as any).closeSheet('rename')}>Cancel</button>
     </SheetWrapper>
   )
 }
@@ -376,7 +376,7 @@ function ChartExpandSheet() {
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <span id="exp-chart-pct" style={{ fontSize: 13, fontWeight: 700, color: 'var(--grn)', background: 'var(--grns)', padding: '4px 10px', borderRadius: 'var(--r-pill)' }}>—</span>
-            <button className="sheet-close" onClick={() => typeof closeSheet === 'function' && closeSheet('chartexp')}>✕</button>
+            <button className="sheet-close" onClick={() => typeof (window as any).closeSheet === 'function' && (window as any).closeSheet('chartexp')}>✕</button>
           </div>
         </div>
       }
@@ -392,7 +392,7 @@ function ChartExpandSheet() {
       {/* Range tabs */}
       <div style={{ display: 'flex', gap: 4, marginBottom: 16 }}>
         {['24H', '7D', '1M', '1Y'].map(r => (
-          <div key={r} className={`crt${r === '24H' ? ' active' : ''}`} data-range={r} onClick={(e) => typeof setChartRange === 'function' && setChartRange(e.currentTarget)}>{r}</div>
+          <div key={r} className={`crt${r === '24H' ? ' active' : ''}`} data-range={r} onClick={(e) => typeof (window as any).setChartRange === 'function' && (window as any).setChartRange(e.currentTarget)}>{r}</div>
         ))}
       </div>
       {/* Stats grid */}
@@ -424,11 +424,11 @@ function InvoiceSheet() {
             <span className="sheet-title" id="inv-sheet-title">New Invoice</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <button onClick={() => typeof openSheet === 'function' && openSheet('invhistory')} style={{ background: 'var(--surf)', border: '1.5px solid var(--bdr)', borderRadius: 10, padding: '6px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, color: 'var(--t2)', fontSize: 11, fontWeight: 600 }}>
+            <button onClick={() => typeof (window as any).openSheet === 'function' && (window as any).openSheet('invhistory')} style={{ background: 'var(--surf)', border: '1.5px solid var(--bdr)', borderRadius: 10, padding: '6px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, color: 'var(--t2)', fontSize: 11, fontWeight: 600 }}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 14, height: 14 }}><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
               History
             </button>
-            <button className="sheet-close" onClick={() => typeof closeSheet === 'function' && closeSheet('invoice')}>✕</button>
+            <button className="sheet-close" onClick={() => typeof (window as any).closeSheet === 'function' && (window as any).closeSheet('invoice')}>✕</button>
           </div>
         </div>
       }
@@ -436,7 +436,7 @@ function InvoiceSheet() {
       {/* Step indicator */}
       <div className="inv-steps" id="inv-steps">
         {['From', 'To', 'Items', 'Payment', 'Preview'].map((label, i) => (
-          <div key={i} className={`inv-step${i === 0 ? ' active' : ''}`} id={`inv-step-${i + 1}`} onClick={() => typeof goInvStep === 'function' && goInvStep(i + 1)}>{label}</div>
+          <div key={i} className={`inv-step${i === 0 ? ' active' : ''}`} id={`inv-step-${i + 1}`} onClick={() => typeof (window as any).goInvStep === 'function' && (window as any).goInvStep(i + 1)}>{label}</div>
         ))}
       </div>
 
@@ -444,24 +444,24 @@ function InvoiceSheet() {
       <div className="inv-section active" id="inv-s1">
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
           <div className="inv-sect-lbl" style={{ margin: 0 }}>Your Business</div>
-          <button onClick={() => typeof openSheet === 'function' && openSheet('invcontacts')} style={{ background: 'var(--surf)', border: '1.5px solid var(--bdr)', borderRadius: 8, padding: '4px 8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, color: 'var(--t2)', fontSize: 10, fontWeight: 600 }}>
+          <button onClick={() => typeof (window as any).openSheet === 'function' && (window as any).openSheet('invcontacts')} style={{ background: 'var(--surf)', border: '1.5px solid var(--bdr)', borderRadius: 8, padding: '4px 8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, color: 'var(--t2)', fontSize: 10, fontWeight: 600 }}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 12, height: 12 }}><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 00-3-3.87" /><path d="M16 3.13a4 4 0 010 7.75" /></svg>
             Contacts
           </button>
         </div>
         <div className="fld" style={{ position: 'relative' }}>
           <label className="flbl">Company / Your Name <span style={{ color: 'var(--red)' }}>*</span></label>
-          <input className="finp" id="inv-from-name" placeholder="e.g. Arkade Labs Ltd." onInput={(e) => typeof showContactSuggest === 'function' && showContactSuggest('from', e.target.value)} onFocus={(e) => typeof showContactSuggest === 'function' && showContactSuggest('from', e.target.value)} onBlur={() => typeof hideContactSuggest === 'function' && hideContactSuggest('from')} autoComplete="off" />
+          <input className="finp" id="inv-from-name" placeholder="e.g. Arkade Labs Ltd." onInput={(e) => typeof (window as any).showContactSuggest === 'function' && (window as any).showContactSuggest('from', e.target.value)} onFocus={(e) => typeof (window as any).showContactSuggest === 'function' && (window as any).showContactSuggest('from', e.target.value)} onBlur={() => typeof (window as any).hideContactSuggest === 'function' && (window as any).hideContactSuggest('from')} autoComplete="off" />
           <div id="inv-from-suggest" className="contact-suggest" style={{ display: 'none' }} />
         </div>
         <div className="fld"><label className="flbl">Address</label><input className="finp" id="inv-from-addr" placeholder="123 Bitcoin Street, London" /></div>
         <div className="fld"><label className="flbl">Email</label><input className="finp" id="inv-from-email" placeholder="hello@arkadelabs.com" type="email" /></div>
         <div className="fld"><label className="flbl">Phone (optional)</label><input className="finp" id="inv-from-phone" placeholder="+44 7000 000000" type="tel" /></div>
-        <button className="btns" id="inv-save-co-btn" onClick={() => typeof saveContactFromForm === 'function' && saveContactFromForm('from')} style={{ marginBottom: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, color: 'var(--acc2)', borderColor: 'var(--acc2)' }}>
+        <button className="btns" id="inv-save-co-btn" onClick={() => typeof (window as any).saveContactFromForm === 'function' && (window as any).saveContactFromForm('from')} style={{ marginBottom: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, color: 'var(--acc2)', borderColor: 'var(--acc2)' }}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 14, height: 14 }}><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z" /><polyline points="17 21 17 13 7 13 7 21" /><polyline points="7 3 7 8 15 8" /></svg>
           Save Details
         </button>
-        <button className="btnp" onClick={() => typeof goInvStep === 'function' && goInvStep(2)}>Next — Bill To →</button>
+        <button className="btnp" onClick={() => typeof (window as any).goInvStep === 'function' && (window as any).goInvStep(2)}>Next — Bill To →</button>
       </div>
 
       {/* STEP 2 — TO */}
@@ -474,17 +474,17 @@ function InvoiceSheet() {
         <div className="fld"><label className="flbl">Due Date</label><input className="finp" id="inv-due" type="date" /></div>
         <div className="fld" style={{ position: 'relative' }}>
           <label className="flbl">Client Name <span style={{ color: 'var(--red)' }}>*</span></label>
-          <input className="finp" id="inv-to-name" placeholder="Client company or person" onInput={(e) => typeof showContactSuggest === 'function' && showContactSuggest('to', e.target.value)} onFocus={(e) => typeof showContactSuggest === 'function' && showContactSuggest('to', e.target.value)} onBlur={() => typeof hideContactSuggest === 'function' && hideContactSuggest('to')} autoComplete="off" />
+          <input className="finp" id="inv-to-name" placeholder="Client company or person" onInput={(e) => typeof (window as any).showContactSuggest === 'function' && (window as any).showContactSuggest('to', e.target.value)} onFocus={(e) => typeof (window as any).showContactSuggest === 'function' && (window as any).showContactSuggest('to', e.target.value)} onBlur={() => typeof (window as any).hideContactSuggest === 'function' && (window as any).hideContactSuggest('to')} autoComplete="off" />
           <div id="inv-to-suggest" className="contact-suggest" style={{ display: 'none' }} />
         </div>
         <div className="fld"><label className="flbl">Client Address</label><input className="finp" id="inv-to-addr" placeholder="456 Satoshi Ave, New York" /></div>
         <div className="fld"><label className="flbl">Client Email</label><input className="finp" id="inv-to-email" placeholder="client@example.com" type="email" /></div>
-        <button className="btns" id="inv-save-client-btn" onClick={() => typeof saveContactFromForm === 'function' && saveContactFromForm('to')} style={{ marginBottom: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, color: 'var(--acc2)', borderColor: 'var(--acc2)' }}>
+        <button className="btns" id="inv-save-client-btn" onClick={() => typeof (window as any).saveContactFromForm === 'function' && (window as any).saveContactFromForm('to')} style={{ marginBottom: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, color: 'var(--acc2)', borderColor: 'var(--acc2)' }}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 14, height: 14 }}><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z" /><polyline points="17 21 17 13 7 13 7 21" /><polyline points="7 3 7 8 15 8" /></svg>
           Save Client Details
         </button>
-        <button className="btnp" onClick={() => typeof goInvStep === 'function' && goInvStep(3)}>Next — Add Items →</button>
-        <button className="btns" onClick={() => typeof goInvStep === 'function' && goInvStep(1)}>← Back</button>
+        <button className="btnp" onClick={() => typeof (window as any).goInvStep === 'function' && (window as any).goInvStep(3)}>Next — Add Items →</button>
+        <button className="btns" onClick={() => typeof (window as any).goInvStep === 'function' && (window as any).goInvStep(1)}>← Back</button>
       </div>
 
       {/* STEP 3 — ITEMS */}
@@ -501,11 +501,11 @@ function InvoiceSheet() {
               { color: '#5c3a1a', title: 'Burnt Orange' },
               { color: '#1c1c1e', title: 'Onyx Black' },
             ].map(s => (
-              <button key={s.color} className={`inv-color-swatch${s.active ? ' active' : ''}`} data-color={s.color} onClick={(e) => typeof setInvColor === 'function' && setInvColor(e.currentTarget)} style={{ background: s.color }} title={s.title} />
+              <button key={s.color} className={`inv-color-swatch${s.active ? ' active' : ''}`} data-color={s.color} onClick={(e) => typeof (window as any).setInvColor === 'function' && (window as any).setInvColor(e.currentTarget)} style={{ background: s.color }} title={s.title} />
             ))}
             <label style={{ position: 'relative', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 28, borderRadius: '50%', border: '2px dashed var(--bdr2)', overflow: 'hidden' }} title="Custom color">
               <span style={{ fontSize: 14 }}>+</span>
-              <input type="color" id="inv-custom-color" style={{ position: 'absolute', opacity: 0, width: '100%', height: '100%', cursor: 'pointer' }} onInput={(e) => typeof setInvColorCustom === 'function' && setInvColorCustom(e.target.value)} />
+              <input type="color" id="inv-custom-color" style={{ position: 'absolute', opacity: 0, width: '100%', height: '100%', cursor: 'pointer' }} onInput={(e) => typeof (window as any).setInvColorCustom === 'function' && (window as any).setInvColorCustom(e.target.value)} />
             </label>
           </div>
         </div>
@@ -513,13 +513,13 @@ function InvoiceSheet() {
           <label className="flbl">Invoice Currency</label>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 6 }}>
             {['USD', 'EUR', 'CHF', 'SATS', 'BTC'].map((c, i) => (
-              <button key={c} className={`inv-cur-btn${i === 0 ? ' active' : ''}`} data-cur={c} onClick={(e) => typeof setInvCurrency === 'function' && setInvCurrency(e.currentTarget)}>{c}</button>
+              <button key={c} className={`inv-cur-btn${i === 0 ? ' active' : ''}`} data-cur={c} onClick={(e) => typeof (window as any).setInvCurrency === 'function' && (window as any).setInvCurrency(e.currentTarget)}>{c}</button>
             ))}
           </div>
         </div>
         <div className="item-hdr"><span>Description</span><span>Qty</span><span>Price</span><span /></div>
         <div id="inv-items-wrap" />
-        <button className="btns" style={{ margin: '0 0 16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, color: 'var(--acc2)', borderColor: 'var(--acc2)' }} onClick={() => typeof addInvItem === 'function' && addInvItem()}>
+        <button className="btns" style={{ margin: '0 0 16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, color: 'var(--acc2)', borderColor: 'var(--acc2)' }} onClick={() => typeof (window as any).addInvItem === 'function' && (window as any).addInvItem()}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ width: 13, height: 13 }}><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
           Add Item
         </button>
@@ -528,8 +528,8 @@ function InvoiceSheet() {
           <div style={{ display: 'flex', justifyContent: 'space-between', padding: '3px 0', borderTop: '1px solid var(--bdr)', marginTop: 6, paddingTop: 8 }}><span style={{ fontSize: 13, fontWeight: 800, color: 'var(--t1)' }}>Total</span><span style={{ fontSize: 14, fontWeight: 900, color: 'var(--acc2)' }} id="inv-total">—</span></div>
         </div>
         <div className="fld"><label className="flbl">Notes (optional)</label><input className="finp" id="inv-notes" placeholder="Payment terms, thank you message…" /></div>
-        <button className="btnp" onClick={() => typeof goInvStep === 'function' && goInvStep(4)}>Next — Payment Method →</button>
-        <button className="btns" onClick={() => typeof goInvStep === 'function' && goInvStep(2)}>← Back</button>
+        <button className="btnp" onClick={() => typeof (window as any).goInvStep === 'function' && (window as any).goInvStep(4)}>Next — Payment Method →</button>
+        <button className="btns" onClick={() => typeof (window as any).goInvStep === 'function' && (window as any).goInvStep(2)}>← Back</button>
       </div>
 
       {/* STEP 4 — PAYMENT METHOD */}
@@ -540,7 +540,7 @@ function InvoiceSheet() {
           { id: 'pay-lightning', name: 'Lightning', desc: 'Instant settlement, any amount', method: 'lightning', icBg: 'var(--ambs)', icClr: 'var(--amb)', svgPath: <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" /> },
           { id: 'pay-onchain', name: 'On-chain Bitcoin', desc: 'On-chain, final settlement', method: 'onchain', icBg: 'var(--grns)', icClr: 'var(--grn)', svgPath: <><circle cx="12" cy="12" r="9" /><path d="M12 7v10M9.5 9.5A2.5 2.5 0 0112 7a2.5 2.5 0 010 5 2.5 2.5 0 000 5A2.5 2.5 0 0014.5 14.5" /></> },
         ].map((p, i) => (
-          <div key={p.id} className={`pay-opt${i === 0 ? ' active' : ''}`} id={p.id} onClick={() => typeof selectPayMethod === 'function' && selectPayMethod(p.method)}>
+          <div key={p.id} className={`pay-opt${i === 0 ? ' active' : ''}`} id={p.id} onClick={() => typeof (window as any).selectPayMethod === 'function' && (window as any).selectPayMethod(p.method)}>
             <div className="pay-opt-ic" style={{ background: p.icBg, color: p.icClr }}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">{p.svgPath}</svg>
             </div>
@@ -552,11 +552,11 @@ function InvoiceSheet() {
           <label className="flbl" id="inv-addr-lbl">Your Ark Address</label>
           <input className="finp" id="inv-pay-addr" style={{ fontFamily: 'monospace', fontSize: 12 }} />
         </div>
-        <button className="btnp" id="inv-gen-btn" onClick={() => typeof generateInvoiceStep === 'function' && generateInvoiceStep()}>
+        <button className="btnp" id="inv-gen-btn" onClick={() => typeof (window as any).generateInvoiceStep === 'function' && (window as any).generateInvoiceStep()}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 15, height: 15, display: 'inline', marginRight: 6 }}><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" /></svg>
           Generate Invoice →
         </button>
-        <button className="btns" onClick={() => typeof goInvStep === 'function' && goInvStep(3)}>← Back</button>
+        <button className="btns" onClick={() => typeof (window as any).goInvStep === 'function' && (window as any).goInvStep(3)}>← Back</button>
       </div>
 
       {/* STEP 5 — GENERATED INVOICE */}
@@ -571,17 +571,17 @@ function InvoiceSheet() {
         </div>
         <div id="inv-preview-wrap" />
         <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
-          <button className="btnp" style={{ flex: 1, background: 'var(--grn)', boxShadow: '0 6px 20px rgba(48,208,104,.35)' }} onClick={() => typeof downloadInvoice === 'function' && downloadInvoice()}>
+          <button className="btnp" style={{ flex: 1, background: 'var(--grn)', boxShadow: '0 6px 20px rgba(48,208,104,.35)' }} onClick={() => typeof (window as any).downloadInvoice === 'function' && (window as any).downloadInvoice()}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 15, height: 15, display: 'inline', marginRight: 6 }}><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
             Download
           </button>
-          <button className="btnp" style={{ flex: 1, background: 'var(--acc2)', boxShadow: '0 6px 20px rgba(14,58,138,.25)' }} onClick={() => typeof shareInvoiceNative === 'function' && shareInvoiceNative()}>
+          <button className="btnp" style={{ flex: 1, background: 'var(--acc2)', boxShadow: '0 6px 20px rgba(14,58,138,.25)' }} onClick={() => typeof (window as any).shareInvoiceNative === 'function' && (window as any).shareInvoiceNative()}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 15, height: 15, display: 'inline', marginRight: 6 }}><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" /></svg>
             Share
           </button>
         </div>
-        <button className="btns" style={{ marginTop: 10 }} onClick={() => typeof copyInvoiceText === 'function' && copyInvoiceText()}>Copy as Text</button>
-        <button className="btns" onClick={() => typeof goInvStep === 'function' && goInvStep(4)}>← Back</button>
+        <button className="btns" style={{ marginTop: 10 }} onClick={() => typeof (window as any).copyInvoiceText === 'function' && (window as any).copyInvoiceText()}>Copy as Text</button>
+        <button className="btns" onClick={() => typeof (window as any).goInvStep === 'function' && (window as any).goInvStep(4)}>← Back</button>
       </div>
     </SheetWrapper>
   )
@@ -597,7 +597,7 @@ function InvHistorySheet() {
         <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 4 }}>No invoices yet</div>
         <div style={{ fontSize: 12, opacity: .7 }}>Generated invoices will appear here</div>
       </div>
-      <button className="btns" onClick={() => typeof closeSheet === 'function' && closeSheet('invhistory')} style={{ marginTop: 12 }}>Close</button>
+      <button className="btns" onClick={() => typeof (window as any).closeSheet === 'function' && (window as any).closeSheet('invhistory')} style={{ marginTop: 12 }}>Close</button>
     </SheetWrapper>
   )
 }
@@ -611,7 +611,7 @@ function InvContactsSheet() {
       <div id="inv-contacts-empty" style={{ display: 'none', textAlign: 'center', padding: '32px 16px', color: 'var(--t3)', fontSize: 13 }}>
         No contacts saved yet.<br /><span style={{ fontSize: 11, opacity: .7 }}>Save details from the invoice form</span>
       </div>
-      <button className="btns" onClick={() => typeof closeSheet === 'function' && closeSheet('invcontacts')} style={{ marginTop: 14 }}>Close</button>
+      <button className="btns" onClick={() => typeof (window as any).closeSheet === 'function' && (window as any).closeSheet('invcontacts')} style={{ marginTop: 14 }}>Close</button>
     </SheetWrapper>
   )
 }
@@ -628,8 +628,8 @@ function BatchSendSheet() {
           <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--t2)' }}>Tap to upload CSV</div>
           <div style={{ fontSize: 10, color: 'var(--t3)', marginTop: 4 }}>Format: address,amount (sats)</div>
         </div>
-        <input type="file" id="batch-csv-input" accept=".csv,.txt" style={{ display: 'none' }} onChange={(e) => typeof parseBatchCSV === 'function' && parseBatchCSV(e.target)} />
-        <button className="btns" style={{ marginTop: 10, fontSize: 11 }} onClick={() => typeof downloadSampleCSV === 'function' && downloadSampleCSV()}>
+        <input type="file" id="batch-csv-input" accept=".csv,.txt" style={{ display: 'none' }} onChange={(e) => typeof (window as any).parseBatchCSV === 'function' && (window as any).parseBatchCSV(e.target)} />
+        <button className="btns" style={{ marginTop: 10, fontSize: 11 }} onClick={() => typeof (window as any).downloadSampleCSV === 'function' && (window as any).downloadSampleCSV()}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 12, height: 12, display: 'inline', marginRight: 4 }}><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
           Download sample CSV
         </button>
@@ -651,21 +651,21 @@ function BatchSendSheet() {
       <div id="batch-queue-list" style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 12 }} />
       {/* Action buttons */}
       <div id="batch-actions" style={{ display: 'none' }}>
-        <button className="btnp" id="batch-send-btn" style={{ background: 'var(--grn)', boxShadow: '0 6px 20px rgba(48,208,104,.35)' }} onClick={() => typeof startBatchSend === 'function' && startBatchSend()}>
+        <button className="btnp" id="batch-send-btn" style={{ background: 'var(--grn)', boxShadow: '0 6px 20px rgba(48,208,104,.35)' }} onClick={() => typeof (window as any).startBatchSend === 'function' && (window as any).startBatchSend()}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 15, height: 15, display: 'inline', marginRight: 6 }}><line x1="22" y1="2" x2="11" y2="13" /><polygon points="22 2 15 22 11 13 2 9 22 2" /></svg>
           {'Send All in 1 Round ⚡'}
         </button>
         <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
-          <button className="btns" style={{ flex: 1 }} id="batch-retry-btn" onClick={() => typeof retryFailed === 'function' && retryFailed()}>Retry Failed</button>
-          <button className="btns" style={{ flex: 1 }} id="batch-clear-sent-btn" onClick={() => typeof clearSentBatch === 'function' && clearSentBatch()}>Clear Sent</button>
+          <button className="btns" style={{ flex: 1 }} id="batch-retry-btn" onClick={() => typeof (window as any).retryFailed === 'function' && (window as any).retryFailed()}>Retry Failed</button>
+          <button className="btns" style={{ flex: 1 }} id="batch-clear-sent-btn" onClick={() => typeof (window as any).clearSentBatch === 'function' && (window as any).clearSentBatch()}>Clear Sent</button>
         </div>
         <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
           <button className="btns" style={{ flex: 1 }} onClick={() => document.getElementById('batch-csv-input')?.click()}>+ Add CSV</button>
-          <button className="btns" style={{ flex: 1, color: 'var(--red)' }} onClick={() => typeof clearAllBatch === 'function' && clearAllBatch()}>Clear All</button>
+          <button className="btns" style={{ flex: 1, color: 'var(--red)' }} onClick={() => typeof (window as any).clearAllBatch === 'function' && (window as any).clearAllBatch()}>Clear All</button>
         </div>
-        <button className="btns" id="batch-stop-btn" style={{ display: 'none', color: 'var(--red)', marginTop: 6 }} onClick={() => typeof stopBatchSend === 'function' && stopBatchSend()}>⏹ Stop Sending</button>
+        <button className="btns" id="batch-stop-btn" style={{ display: 'none', color: 'var(--red)', marginTop: 6 }} onClick={() => typeof (window as any).stopBatchSend === 'function' && (window as any).stopBatchSend()}>⏹ Stop Sending</button>
       </div>
-      <button className="btns" onClick={() => typeof closeSheet === 'function' && closeSheet('batchsend')} style={{ marginTop: 14 }}>Close</button>
+      <button className="btns" onClick={() => typeof (window as any).closeSheet === 'function' && (window as any).closeSheet('batchsend')} style={{ marginTop: 14 }}>Close</button>
     </SheetWrapper>
   )
 }
@@ -705,12 +705,12 @@ function SendConfirmSheet() {
       <input type="hidden" id="sc-amount-raw" />
       <input type="hidden" id="sc-network-type" defaultValue="ark" />
       <div style={{ padding: '0 20px 28px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-        <button id="sc-confirm-btn" onClick={() => typeof confirmSend === 'function' && confirmSend()}
+        <button id="sc-confirm-btn" onClick={() => typeof (window as any).confirmSend === 'function' && (window as any).confirmSend()}
           style={{ height: 54, borderRadius: 16, background: 'var(--acc2)', color: '#fff', fontSize: 15, fontWeight: 700, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, boxShadow: 'var(--shb)', letterSpacing: '.01em', transition: 'opacity .15s' }}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ width: 16, height: 16, flexShrink: 0 }}><polyline points="20 6 9 17 4 12" /></svg>
           <span id="sc-confirm-label">Send Now</span>
         </button>
-        <button onClick={() => { typeof closeSheet === 'function' && closeSheet('sendconfirm'); setTimeout(() => typeof openSheet === 'function' && openSheet('send'), 200) }}
+        <button onClick={() => { typeof (window as any).closeSheet === 'function' && (window as any).closeSheet('sendconfirm'); setTimeout(() => typeof (window as any).openSheet === 'function' && (window as any).openSheet('send'), 200) }}
           style={{ height: 46, borderRadius: 14, background: 'transparent', border: '1.5px solid var(--bdr2)', color: 'var(--t2)', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
           ← Edit
         </button>
@@ -735,12 +735,12 @@ function SendResultSheet() {
           <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', color: 'var(--t3)', marginBottom: 10 }}>Save Address</div>
           <input className="finp" id="sres-fav-name" type="text" placeholder="Name (e.g. Alice)" style={{ marginBottom: 10, fontSize: 13 }} />
           <div id="sres-fav-addr" style={{ fontSize: 11, color: 'var(--t3)', wordBreak: 'break-all', marginBottom: 12, fontFamily: 'var(--f-mono)', lineHeight: 1.5 }} />
-          <button id="sres-fav-btn" onClick={() => typeof saveFromResult === 'function' && saveFromResult()} style={{ width: '100%', height: 40, borderRadius: 12, background: 'var(--accs)', border: '1px solid var(--cb)', color: 'var(--acc2)', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+          <button id="sres-fav-btn" onClick={() => typeof (window as any).saveFromResult === 'function' && (window as any).saveFromResult()} style={{ width: '100%', height: 40, borderRadius: 12, background: 'var(--accs)', border: '1px solid var(--cb)', color: 'var(--acc2)', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 14, height: 14 }}><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
             Save to Favorites
           </button>
         </div>
-        <button className="btnp" onClick={() => typeof closeSheet === 'function' && closeSheet('sendresult')} style={{ maxWidth: 280, margin: '0 auto' }}>Done</button>
+        <button className="btnp" onClick={() => typeof (window as any).closeSheet === 'function' && (window as any).closeSheet('sendresult')} style={{ maxWidth: 280, margin: '0 auto' }}>Done</button>
       </div>
     </SheetWrapper>
   )
@@ -814,7 +814,7 @@ function SettleResultSheet() {
         </div>
         <div id="settle-result-title" style={{ fontSize: 22, fontWeight: 900, color: 'var(--t1)', letterSpacing: '-.03em', marginBottom: 6, fontFamily: 'var(--f-logo)' }}>Done!</div>
         <div id="settle-result-sub" style={{ fontSize: 13, color: 'var(--t3)', marginBottom: 28, lineHeight: 1.6, maxWidth: 260, marginLeft: 'auto', marginRight: 'auto' }}>Operation completed successfully.</div>
-        <button className="btnp" onClick={() => typeof closeSheet === 'function' && closeSheet('settleresult')} style={{ maxWidth: 280, margin: '0 auto' }}>Done</button>
+        <button className="btnp" onClick={() => typeof (window as any).closeSheet === 'function' && (window as any).closeSheet('settleresult')} style={{ maxWidth: 280, margin: '0 auto' }}>Done</button>
       </div>
     </SheetWrapper>
   )
@@ -825,7 +825,7 @@ function GameScreen() {
   return (
     <div id="game-screen">
       <div className="gs-topbar">
-        <button className="gs-back" onClick={() => typeof closeGame === 'function' && closeGame()}>←</button>
+        <button className="gs-back" onClick={() => typeof (window as any).closeGame === 'function' && (window as any).closeGame()}>←</button>
         <span className="gs-title" id="gs-title">Game</span>
         <div className="gs-stats">
           <div className="gs-stat">
@@ -855,7 +855,7 @@ function PWABanner() {
         <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--t1)' }}>Install ArkON</div>
         <div style={{ fontSize: 11, color: 'var(--t3)' }}>Add to your Home Screen for the best experience</div>
       </div>
-      <button onClick={() => typeof triggerPWAInstall === 'function' && triggerPWAInstall()} style={{ flexShrink: 0, padding: '8px 14px', background: 'var(--acc)', color: '#fff', border: 'none', borderRadius: 'var(--r-pill)', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--f)' }}>Install</button>
+      <button onClick={() => typeof (window as any).triggerPWAInstall === 'function' && (window as any).triggerPWAInstall()} style={{ flexShrink: 0, padding: '8px 14px', background: 'var(--acc)', color: '#fff', border: 'none', borderRadius: 'var(--r-pill)', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--f)' }}>Install</button>
       <button onClick={() => { const b = document.getElementById('pwa-banner'); if (b) b.style.display = 'none' }} style={{ width: 24, height: 24, borderRadius: '50%', background: 'var(--bg3)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, color: 'var(--t3)', flexShrink: 0, fontFamily: 'var(--f)' }}>✕</button>
     </div>
   )
