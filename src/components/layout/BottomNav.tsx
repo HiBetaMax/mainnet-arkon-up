@@ -70,16 +70,12 @@ const NAV_ITEMS: NavItem[] = [
 ]
 
 export default function BottomNav() {
+  const activePage = useStore((s) => s.activePage)
   const setActivePage = useStore((s) => s.setActivePage)
 
   const handleNav = useCallback(
     (id: Page) => {
       setActivePage(id)
-      // Legacy compat: toggle DOM classes for CSS transitions
-      document.querySelectorAll('.page').forEach((x) => x.classList.remove('active'))
-      document.querySelectorAll('.ni').forEach((x) => x.classList.remove('active'))
-      document.getElementById(`page-${id}`)?.classList.add('active')
-      document.getElementById(`nav-${id}`)?.classList.add('active')
 
       // Scroll content to top
       const content = document.getElementById('content')
@@ -102,7 +98,7 @@ export default function BottomNav() {
         <div
           key={item.id}
           id={`nav-${item.id}`}
-          className={`ni${item.id === 'home' ? ' active' : ''}`}
+          className={`ni${activePage === item.id ? ' active' : ''}`}
           onClick={() => handleNav(item.id)}
         >
           <div className="nbar" />

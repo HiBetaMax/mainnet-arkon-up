@@ -41,25 +41,49 @@ export default function App() {
       useStore.getState().setBootState('ready')
     }
 
+    // After React renders, re-populate addresses from main.js globals
+    function syncAddresses() {
+      const w = window as any
+      if (typeof w._setLiveAddresses === 'function' && w._arkAddr) {
+        w._setLiveAddresses(w._arkAddr, w._boardingAddr)
+      }
+    }
+
     // Register callback for main.js boot completion
-    ;(window as any)._onBootReady = markReady
+    ;(window as any)._onBootReady = () => {
+      markReady()
+      // Give React one tick to render, then sync addresses
+      setTimeout(syncAddresses, 150)
+    }
 
     if (hasWallet) {
-      // main.js boot may have already completed before React mounted
-      if ((window as any)._wallet) {
-        markReady()
-      } else {
-        // Boot in progress or not started — poll for completion
-        useStore.getState().setBootState('booting')
-        const check = setInterval(() => {
-          if ((window as any)._wallet) {
-            clearInterval(check)
-            markReady()
-          }
-        }, 200)
-        // Safety timeout
-        setTimeout(() => clearInterval(check), 15000)
+      useStore.getState().setBootState('booting')
+
+      // Trigger boot via main.js
+      let bootAttempts = 0
+      function tryBoot() {
+        bootAttempts++
+        if (typeof (window as any)._bootApp === 'function') {
+          console.log('[App] Calling _bootApp() — attempt', bootAttempts)
+          ;(window as any)._bootApp()
+        } else if (bootAttempts < 100) {
+          setTimeout(tryBoot, 100)
+        } else {
+          console.error('[App] _bootApp never became available')
+        }
       }
+      setTimeout(tryBoot, 100)
+
+      // Poll for _arkAddr — set after addresses are fetched in boot()
+      const check = setInterval(() => {
+        if ((window as any)._arkAddr) {
+          clearInterval(check)
+          markReady()
+          setTimeout(syncAddresses, 150)
+        }
+      }, 200)
+      // Safety timeout
+      setTimeout(() => clearInterval(check), 15000)
     } else {
       removeSdkLoading()
       useStore.getState().setSplashStep(2)

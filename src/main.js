@@ -341,6 +341,10 @@ async function boot() {
       getBoardingAddress(),
     ])
 
+    // Store on window so React can re-trigger after mount
+    window._arkAddr = arkAddr
+    window._boardingAddr = boardingAddr
+
     if (window._setLiveAddresses) {
       window._setLiveAddresses(arkAddr, boardingAddr)
     }

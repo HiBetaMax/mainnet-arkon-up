@@ -51,8 +51,9 @@ export default function RecentTx() {
               onClick={() => {
                 useStore.getState().setSelectedTxId(tx.id)
                 useStore.getState().openSheet('txdetail')
-                const el = document.getElementById('sheet-txdetail')
-                if (el) el.classList.add('open')
+                if (typeof (window as any).openSheet === 'function') {
+                  (window as any).openSheet('txdetail')
+                }
               }}
             >
               <div className="tx-icon">

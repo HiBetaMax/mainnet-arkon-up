@@ -30,6 +30,9 @@
   "pnpm": {
     "onlyBuiltDependencies": [
       "esbuild"
-    ]
+    ],
+    "overrides": {
+      "zustand": "^5.0.11"
+    }
   }
 }
