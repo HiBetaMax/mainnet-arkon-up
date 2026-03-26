@@ -182,7 +182,10 @@ export default function ReceiveSheet() {
     showToast,
     setLightningInvoice,
     setLightningInvoiceAmount,
+    openSheets,
   } = useStore()
+
+  const isOpen = openSheets.includes('receive')
 
   const price = useMemo(
     () => (livePrices as Record<string, number>)[currency] ?? livePrices.USD,
@@ -216,18 +219,21 @@ export default function ReceiveSheet() {
     return `~ ${currency} ${satsToFiat(invoiceAmountNum, price)}`
   }, [invoiceAmountNum, currency, price])
 
+  const arkReady = arkAddress && !arkAddress.startsWith('Connecting')
+  const onchainReady = boardingAddress && !boardingAddress.startsWith('Connecting')
+
   /* ── QR effects ─────────────────────────────────────────────────────── */
   useEffect(() => {
-    if (receiveTab === 'ark') renderQR(arkQrRef.current, arkAddress)
-  }, [receiveTab, arkAddress])
+    if (isOpen && receiveTab === 'ark' && arkReady) renderQR(arkQrRef.current, arkAddress)
+  }, [isOpen, receiveTab, arkReady, arkAddress])
 
   useEffect(() => {
-    if (receiveTab === 'onchain') renderQR(onchainQrRef.current, boardingAddress)
-  }, [receiveTab, boardingAddress])
+    if (isOpen && receiveTab === 'onchain' && onchainReady) renderQR(onchainQrRef.current, boardingAddress)
+  }, [isOpen, receiveTab, onchainReady, boardingAddress])
 
   useEffect(() => {
-    if (generatedInvoice) renderQR(lnQrRef.current, generatedInvoice)
-  }, [generatedInvoice])
+    if (isOpen && generatedInvoice) renderQR(lnQrRef.current, generatedInvoice)
+  }, [isOpen, generatedInvoice])
 
   /* ── Clipboard helper ───────────────────────────────────────────────── */
   const copyToClipboard = useCallback(
