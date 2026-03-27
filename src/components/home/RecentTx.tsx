@@ -1,26 +1,43 @@
-import { useMemo, useCallback } from 'react'
+import { useMemo } from 'react'
 import useStore from '../../store'
 
-function formatTxAmount(sats: number, balDisplayMode: string, currency: string, livePrices: Record<string, number>, btcUsd: number): string {
+function formatFiat(sats: number, currency: string, livePrices: Record<string, number>, btcUsd: number): string {
   const absSats = Math.abs(sats)
   const price = livePrices[currency] || btcUsd || 0
   const fiatVal = price > 0 ? (absSats * price / 1e8) : 0
   const fiatStr = fiatVal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
   const sym = currency === 'EUR' ? '€' : currency === 'CHF' ? 'CHF ' : '$'
+  return `${sym}${fiatStr}`
+}
 
-  if (balDisplayMode === 'fiat') {
-    return `${sym}${fiatStr}`
+function TxIcon({ cls }: { cls: string }) {
+  if (cls === 'in') {
+    return (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 16, height: 16 }}>
+        <line x1="12" y1="5" x2="12" y2="19" />
+        <polyline points="19 12 12 19 5 12" />
+      </svg>
+    )
   }
-  if (balDisplayMode === 'both') {
-    return `${absSats.toLocaleString()} sats · ${sym}${fiatStr}`
+  if (cls === 'pnd') {
+    return (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 16, height: 16 }}>
+        <circle cx="12" cy="12" r="10" />
+        <polyline points="12 6 12 12 16 14" />
+      </svg>
+    )
   }
-  return `${absSats.toLocaleString()} sats`
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 16, height: 16 }}>
+      <line x1="12" y1="19" x2="12" y2="5" />
+      <polyline points="5 12 12 5 19 12" />
+    </svg>
+  )
 }
 
 export default function RecentTx() {
   const txRegistry = useStore((s) => s.txRegistry)
   const setActivePage = useStore((s) => s.setActivePage)
-  const balDisplayMode = useStore((s) => s.balDisplayMode)
   const currency = useStore((s) => s.currency)
   const livePrices = useStore((s) => s.livePrices)
   const btcUsd = useStore((s) => s.btcUsd)
@@ -35,15 +52,11 @@ export default function RecentTx() {
       .slice(0, 5)
   }, [txRegistry])
 
-  const handleSeeAll = () => {
-    setActivePage('transactions')
-  }
-
   return (
     <div className="section">
       <div className="sh">
         <span className="sh-t">Recent</span>
-        <span className="sh-l" onClick={handleSeeAll}>
+        <span className="sh-l" onClick={() => setActivePage('transactions')}>
           See all
         </span>
       </div>
@@ -63,46 +76,41 @@ export default function RecentTx() {
           recentTxs.map((tx) => (
             <div
               key={tx.id}
-              className={`tx-row ${tx.cls || ''}`}
+              className="txr"
+              data-type={tx.cls}
               onClick={() => {
                 useStore.getState().setSelectedTxId(tx.id)
                 useStore.getState().openSheet('txdetail')
-                if (typeof (window as any).openSheet === 'function') {
-                  (window as any).openSheet('txdetail')
-                }
+                const el = document.getElementById('sheet-txdetail')
+                if (el) el.classList.add('open')
               }}
+              style={{ cursor: 'pointer' }}
             >
-              <div className="tx-icon">
-                {tx.cls === 'in' ? (
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 16, height: 16 }}>
-                    <line x1="12" y1="5" x2="12" y2="19" />
-                    <polyline points="19 12 12 19 5 12" />
-                  </svg>
-                ) : (
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 16, height: 16 }}>
-                    <line x1="12" y1="19" x2="12" y2="5" />
-                    <polyline points="5 12 12 5 19 12" />
-                  </svg>
-                )}
+              <div className={`txico ${tx.cls || ''}`}>
+                <TxIcon cls={tx.cls || 'out'} />
               </div>
-              <div className="tx-info">
-                <div className="tx-label">{tx.label}</div>
-                <div className="tx-meta">
+              <div className="txinf">
+                <div className="txnm">{tx.label}</div>
+                <div className="txmt">
                   {tx.date
-                    ? tx.date.toLocaleDateString(undefined, {
-                        month: 'short',
-                        day: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })
+                    ? tx.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
                     : 'Pending'}
-                  {' \u00b7 '}
-                  {tx.network}
+                  {tx.date
+                    ? ` \u00B7 ${tx.date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`
+                    : ''}
+                  {' \u00B7 '}
+                  {tx.network || 'Ark'}
                 </div>
               </div>
-              <div className={`tx-amt ${tx.cls || ''}`}>
-                {tx.cls === 'in' ? '+' : '-'}
-                {formatTxAmount(tx.amount, balDisplayMode, currency, livePrices as unknown as Record<string, number>, btcUsd ?? 0)}
+              <div className="txamt">
+                <div className={`txb ${tx.cls || ''}`}>
+                  {tx.cls === 'in' ? '+' : '\u2212'}
+                  {Math.abs(tx.amount).toLocaleString()} sats
+                </div>
+                <div className="txf">
+                  {tx.cls === 'in' ? '+' : '\u2212'}
+                  {formatFiat(tx.amount, currency, livePrices as unknown as Record<string, number>, btcUsd ?? 0)}
+                </div>
               </div>
             </div>
           ))
