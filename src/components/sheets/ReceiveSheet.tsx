@@ -206,6 +206,7 @@ export default function ReceiveSheet() {
 
   /* ── Lightning local state ──────────────────────────────────────────── */
   const [invoiceAmount, setInvoiceAmount] = useState('')
+  const [invoiceFiatAmount, setInvoiceFiatAmount] = useState('')
   const [invoiceDescription, setInvoiceDescription] = useState('')
   const [generatedInvoice, setGeneratedInvoice] = useState<string | null>(null)
   const [generating, setGenerating] = useState(false)
@@ -216,8 +217,22 @@ export default function ReceiveSheet() {
 
   const lnFiatPreview = useMemo(() => {
     if (!invoiceAmountNum) return 'Enter amount to see fiat equivalent'
-    return `~ ${currency} ${satsToFiat(invoiceAmountNum, price)}`
+    const sym = currency === 'EUR' ? '€' : currency === 'CHF' ? 'CHF ' : '$'
+    return `≈ ${sym}${satsToFiat(invoiceAmountNum, price)} ${currency}`
   }, [invoiceAmountNum, currency, price])
+
+  const handleLnSatsInput = useCallback((val: string) => {
+    setInvoiceAmount(val)
+    const sats = parseInt(val, 10) || 0
+    if (price > 0) setInvoiceFiatAmount(satsToFiat(sats, price))
+  }, [price])
+
+  const handleLnFiatInput = useCallback((val: string) => {
+    setInvoiceFiatAmount(val)
+    const fiat = parseFloat(val) || 0
+    const sats = fiatToSats(fiat, price)
+    setInvoiceAmount(sats > 0 ? String(sats) : '')
+  }, [price])
 
   const arkReady = arkAddress && !arkAddress.startsWith('Connecting')
   const onchainReady = boardingAddress && !boardingAddress.startsWith('Connecting')
@@ -420,37 +435,82 @@ export default function ReceiveSheet() {
               Arkade/Boltz.
             </div>
 
-            <div className="fld">
-              <label className="flbl">
-                Amount (SATS) <span style={{ color: 'var(--red)' }}>*</span>
-              </label>
-              <div className="fwrap">
-                <input
-                  className="finp"
-                  id="ln-req-amt"
-                  placeholder="e.g. 21,000"
-                  type="number"
-                  value={invoiceAmount}
-                  onChange={(e) => setInvoiceAmount(e.target.value)}
-                  style={{ paddingRight: 56 }}
-                />
-                <span
-                  className="fmax"
-                  onClick={() => {
-                    const max = wallet.offchain || wallet.sats || 0
-                    setInvoiceAmount(String(max))
-                  }}
+            {/* Fiat input — shown in 'fiat' and 'both' modes */}
+            {balDisplayMode !== 'sats' && (
+              <div className="fld">
+                <label className="flbl">
+                  Amount ({currency}) {balDisplayMode === 'fiat' && <span style={{ color: 'var(--red)' }}>*</span>}
+                </label>
+                <div className="fwrap">
+                  <input
+                    className="finp"
+                    id="ln-req-fiat"
+                    placeholder="0.00"
+                    type="number"
+                    step="0.01"
+                    value={invoiceFiatAmount}
+                    onChange={(e) => handleLnFiatInput(e.target.value)}
+                    style={{ paddingRight: 56 }}
+                  />
+                  <span
+                    className="fmax"
+                    style={{ fontSize: 10, right: 6 }}
+                    onClick={() => {
+                      const max = wallet.offchain || wallet.sats || 0
+                      setInvoiceAmount(String(max))
+                      setInvoiceFiatAmount(satsToFiat(max, price))
+                    }}
+                  >
+                    MAX
+                  </span>
+                </div>
+                {balDisplayMode === 'fiat' && invoiceAmountNum > 0 && (
+                  <div style={{ fontSize: 11, color: 'var(--t3)', marginTop: 5 }}>
+                    ≈ {formatSats(invoiceAmountNum)} SATS
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Sats input — shown in 'sats' and 'both' modes */}
+            {balDisplayMode !== 'fiat' && (
+              <div className="fld">
+                <label className="flbl">
+                  Amount (SATS) {balDisplayMode === 'sats' && <span style={{ color: 'var(--red)' }}>*</span>}
+                </label>
+                <div className="fwrap">
+                  <input
+                    className="finp"
+                    id="ln-req-amt"
+                    placeholder="e.g. 21,000"
+                    type="number"
+                    value={invoiceAmount}
+                    onChange={(e) => handleLnSatsInput(e.target.value)}
+                    style={{ paddingRight: 56 }}
+                  />
+                  <span
+                    className="fmax"
+                    onClick={() => {
+                      const max = wallet.offchain || wallet.sats || 0
+                      handleLnSatsInput(String(max))
+                    }}
+                  >
+                    MAX
+                  </span>
+                </div>
+                <div
+                  style={{ fontSize: 11, color: 'var(--t3)', marginTop: 5 }}
+                  id="ln-fiat-preview"
                 >
-                  MAX
-                </span>
+                  {lnFiatPreview}
+                </div>
               </div>
-              <div
-                style={{ fontSize: 11, color: 'var(--t3)', marginTop: 5 }}
-                id="ln-fiat-preview"
-              >
-                {lnFiatPreview}
-              </div>
-            </div>
+            )}
+
+            {/* Hidden input for fiat-only mode so invoiceAmount is always set */}
+            {balDisplayMode === 'fiat' && (
+              <input type="hidden" id="ln-req-amt" value={invoiceAmount} />
+            )}
 
             <div className="fld">
               <label className="flbl">Description (optional)</label>

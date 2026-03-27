@@ -1,9 +1,29 @@
-import { useMemo } from 'react'
+import { useMemo, useCallback } from 'react'
 import useStore from '../../store'
+
+function formatTxAmount(sats: number, balDisplayMode: string, currency: string, livePrices: Record<string, number>, btcUsd: number): string {
+  const absSats = Math.abs(sats)
+  const price = livePrices[currency] || btcUsd || 0
+  const fiatVal = price > 0 ? (absSats * price / 1e8) : 0
+  const fiatStr = fiatVal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  const sym = currency === 'EUR' ? '€' : currency === 'CHF' ? 'CHF ' : '$'
+
+  if (balDisplayMode === 'fiat') {
+    return `${sym}${fiatStr}`
+  }
+  if (balDisplayMode === 'both') {
+    return `${absSats.toLocaleString()} sats · ${sym}${fiatStr}`
+  }
+  return `${absSats.toLocaleString()} sats`
+}
 
 export default function RecentTx() {
   const txRegistry = useStore((s) => s.txRegistry)
   const setActivePage = useStore((s) => s.setActivePage)
+  const balDisplayMode = useStore((s) => s.balDisplayMode)
+  const currency = useStore((s) => s.currency)
+  const livePrices = useStore((s) => s.livePrices)
+  const btcUsd = useStore((s) => s.btcUsd)
 
   const recentTxs = useMemo(() => {
     return Object.values(txRegistry)
@@ -86,7 +106,7 @@ export default function RecentTx() {
               </div>
               <div className={`tx-amt ${tx.cls || ''}`}>
                 {tx.cls === 'in' ? '+' : '-'}
-                {Math.abs(tx.amount).toLocaleString()} sats
+                {formatTxAmount(tx.amount, balDisplayMode, currency, livePrices as unknown as Record<string, number>, btcUsd ?? 0)}
               </div>
             </div>
           ))

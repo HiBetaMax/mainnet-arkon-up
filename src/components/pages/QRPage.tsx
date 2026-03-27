@@ -56,9 +56,9 @@ export default function QRPage() {
 
         {/* Static panel: Ark / On-chain */}
         <div id="qr-static-panel">
-          <div className="qr-ring">
-            <div className="qr-ring-inner">
-              <div className="qr-canvas-wrap" id="qr-main-canvas" />
+          <div className="sht-qr">
+            <div className="sht-qr-inner">
+              <div id="qr-main-canvas" />
             </div>
           </div>
           <div className="addr-blk">
@@ -168,11 +168,9 @@ export default function QRPage() {
           </div>
           <div id="qr-ln-result" style={{ display: 'none' }}>
             <div style={{ background: 'var(--bg3)', border: '1px solid var(--bdr2)', borderRadius: 'var(--r-md)', padding: 16, marginBottom: 14 }}>
-              <div className="qr-ring" style={{ marginBottom: 10 }}>
-                <div className="qr-ring-inner">
-                  <div className="qr-canvas-wrap">
-                    <div id="qr-ln-canvas" />
-                  </div>
+              <div className="sht-qr" style={{ marginBottom: 10 }}>
+                <div className="sht-qr-inner">
+                  <div id="qr-ln-canvas" />
                 </div>
               </div>
               <div style={{ textAlign: 'center', marginBottom: 4 }}>
@@ -220,8 +218,8 @@ export default function QRPage() {
 
       {/* Scan Panel */}
       <div id="qr-scan-panel" style={{ display: qrTab === 'scan' ? 'block' : 'none' }}>
-        <div className="qr-ring">
-          <div className="qr-ring-inner">
+        <div className="sht-qr">
+          <div className="sht-qr-inner">
             <div className="qr-scan-box">
               <div className="scan-line" />
               <div className="sc-corners">

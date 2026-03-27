@@ -16,11 +16,11 @@ function PersonalizeSheet() {
 
   const handleCurrency = (val: string) => {
     setCurrency(val)
-    // Also update ui.js chart/ticker (deferred to avoid sync errors)
+    // Update ui.js chart currency only (not balance DOM elements)
     setTimeout(() => {
       const w = window as any
-      if (typeof w.applyCur === 'function') {
-        try { w.applyCur(val) } catch { /* ui.js DOM refs may not exist */ }
+      if (typeof w.switchChartCurrency === 'function') {
+        try { w.switchChartCurrency(val) } catch { /* chart may not be initialized */ }
       }
     }, 0)
   }
@@ -45,13 +45,13 @@ function PersonalizeSheet() {
             <div className="sr-text"><div className="sr-nm">Home Balance</div><div className="sr-sb">Choose what to show on the home screen</div></div>
           </div>
           <div className="bdm-row" style={{ marginLeft: 46 }}>
-            <button className={`bdm-opt${balDisplayMode === 'fiat' ? ' active' : ''}`} id="bdm-fiat" onClick={() => handleBalDisplay('fiat')}>Fiat</button>
-            <button className={`bdm-opt${balDisplayMode === 'both' ? ' active' : ''}`} id="bdm-both" onClick={() => handleBalDisplay('both')}>Both</button>
-            <button className={`bdm-opt${balDisplayMode === 'sats' ? ' active' : ''}`} id="bdm-sats" onClick={() => handleBalDisplay('sats')}>Sats</button>
+            <button className={`bdm-opt${balDisplayMode === 'fiat' ? ' active' : ''}`} data-bdm="fiat" onClick={() => handleBalDisplay('fiat')}>Fiat</button>
+            <button className={`bdm-opt${balDisplayMode === 'both' ? ' active' : ''}`} data-bdm="both" onClick={() => handleBalDisplay('both')}>Both</button>
+            <button className={`bdm-opt${balDisplayMode === 'sats' ? ' active' : ''}`} data-bdm="sats" onClick={() => handleBalDisplay('sats')}>Sats</button>
           </div>
         </div>
         {/* Currency row */}
-        <div id="cur-row" className="sr" style={{ cursor: 'default', display: balDisplayMode === 'sats' ? 'none' : undefined }}>
+        <div className="sr" style={{ cursor: 'default', display: balDisplayMode === 'sats' ? 'none' : undefined }}>
           <div className="sr-ic">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="10" /><line x1="2" y1="12" x2="22" y2="12" /><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z" /></svg>
           </div>
@@ -63,7 +63,7 @@ function PersonalizeSheet() {
           </select>
         </div>
         {/* Sats locked row */}
-        <div id="sats-locked-row" className="sr" style={{ display: balDisplayMode === 'sats' ? 'flex' : 'none', cursor: 'default' }}>
+        <div className="sr" style={{ display: balDisplayMode === 'sats' ? 'flex' : 'none', cursor: 'default' }}>
           <div className="sr-ic">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="10" /><line x1="2" y1="12" x2="22" y2="12" /><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z" /></svg>
           </div>

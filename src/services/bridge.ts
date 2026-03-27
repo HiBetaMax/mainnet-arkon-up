@@ -52,11 +52,47 @@ export function initWindowBridge(): void {
     w._btcUsd = s.btcUsd
     w._livePrices = s.livePrices
     w._feeRates = s.feeRates
+    // Sync display settings so ui.js reads the correct values
+    w.balDisplayMode = s.balDisplayMode
+    // Keep ui.js ARK_ADDR in sync for QR page
+    w.ARK_ADDR = s.arkAddress
+    w.BOARDING_ADDR = s.boardingAddress
   }
 
   // Sync immediately + on every store change
   syncToWindow()
   useStore.subscribe(syncToWindow)
+
+  // ── Override ui.js functions that would destroy React-managed DOM ──
+  // Send/Receive sheets are now full React components — prevent innerHTML injection
+  w.updateSendAmountFields = () => { /* no-op: React SendSheet manages its own DOM */ }
+  w.updateRcvAmountFields = () => { /* no-op: React ReceiveSheet manages its own DOM */ }
+
+  // Override openSheet to use Zustand for React-managed sheets
+  // Wait for ui.js to register its openSheet first, then wrap it
+  const patchOpenSheet = () => {
+    const uiOpenSheet = w.openSheet
+    w.openSheet = (id: string) => {
+      // Always sync to Zustand store
+      useStore.getState().openSheet(id)
+      // For send/receive, ONLY add the CSS class — don't call innerHTML functions
+      if (id === 'send' || id === 'receive') {
+        const el = document.getElementById('sheet-' + id)
+        if (el) el.classList.add('open')
+        return
+      }
+      // For all other sheets, call the original ui.js openSheet
+      if (typeof uiOpenSheet === 'function') {
+        try { uiOpenSheet(id) } catch { /* sheet may not have a ui.js handler */ }
+      } else {
+        const el = document.getElementById('sheet-' + id)
+        if (el) el.classList.add('open')
+      }
+    }
+  }
+  // ui.js sets window.openSheet at import time, so it should be available now
+  // But use a microtask to ensure all imports have completed
+  Promise.resolve().then(patchOpenSheet)
 
   // ── Expose service functions on window for ui.js ──
 
