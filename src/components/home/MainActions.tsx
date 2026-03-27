@@ -5,6 +5,10 @@ export default function MainActions() {
 
   const handleOpen = (id: string) => {
     openSheet(id)
+    // Legacy compat: call ui.js openSheet which adds CSS class + populates dynamic fields
+    if (typeof (window as any).openSheet === 'function') {
+      (window as any).openSheet(id)
+    }
   }
 
   return (

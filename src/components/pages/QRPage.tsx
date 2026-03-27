@@ -1,30 +1,8 @@
-import { useEffect } from 'react'
 import useStore from '../../store'
 
 export default function QRPage() {
   const qrTab = useStore((s) => s.qrTab)
   const setQrTab = useStore((s) => s.setQrTab)
-  const activePage = useStore((s) => s.activePage)
-
-  const arkAddress = useStore((s) => s.arkAddress)
-
-  // Generate QR when page is active and address is ready
-  useEffect(() => {
-    if (activePage !== 'qr') return
-    const addr = arkAddress && !arkAddress.startsWith('Connecting') ? arkAddress : ''
-    if (!addr) return
-    const el = document.getElementById('qr-main-canvas')
-    if (!el) return
-    // Clear any existing QR (prevents doubling from ui.js race)
-    el.innerHTML = ''
-    try {
-      new (window as any).QRCode(el, {
-        text: addr, width: 186, height: 186,
-        colorDark: '#000000', colorLight: '#ffffff',
-        correctLevel: (window as any).QRCode?.CorrectLevel?.M,
-      })
-    } catch { /* QRCode lib not loaded */ }
-  }, [activePage, arkAddress])
 
   const handleTabChange = (tab: 'mine' | 'scan') => {
     setQrTab(tab)
@@ -37,8 +15,8 @@ export default function QRPage() {
   return (
     <div style={{ padding: '0 20px 28px' }}>
       <div className="pg-head">
-        <h2>QR Code</h2>
-        <p>Scan or share your address</p>
+        <div className="pg-title">QR Code</div>
+        <div className="pg-sub">Scan or share your address</div>
       </div>
 
       {/* My QR / Scan QR tabs */}
@@ -78,9 +56,9 @@ export default function QRPage() {
 
         {/* Static panel: Ark / On-chain */}
         <div id="qr-static-panel">
-          <div className="sht-qr">
-            <div className="sht-qr-inner">
-              <div id="qr-main-canvas" />
+          <div className="qr-ring">
+            <div className="qr-ring-inner">
+              <div className="qr-canvas-wrap" id="qr-main-canvas" />
             </div>
           </div>
           <div className="addr-blk">
@@ -190,9 +168,11 @@ export default function QRPage() {
           </div>
           <div id="qr-ln-result" style={{ display: 'none' }}>
             <div style={{ background: 'var(--bg3)', border: '1px solid var(--bdr2)', borderRadius: 'var(--r-md)', padding: 16, marginBottom: 14 }}>
-              <div className="sht-qr" style={{ marginBottom: 10 }}>
-                <div className="sht-qr-inner">
-                  <div id="qr-ln-canvas" />
+              <div className="qr-ring" style={{ marginBottom: 10 }}>
+                <div className="qr-ring-inner">
+                  <div className="qr-canvas-wrap">
+                    <div id="qr-ln-canvas" />
+                  </div>
                 </div>
               </div>
               <div style={{ textAlign: 'center', marginBottom: 4 }}>
@@ -240,8 +220,8 @@ export default function QRPage() {
 
       {/* Scan Panel */}
       <div id="qr-scan-panel" style={{ display: qrTab === 'scan' ? 'block' : 'none' }}>
-        <div className="sht-qr">
-          <div className="sht-qr-inner">
+        <div className="qr-ring">
+          <div className="qr-ring-inner">
             <div className="qr-scan-box">
               <div className="scan-line" />
               <div className="sc-corners">
