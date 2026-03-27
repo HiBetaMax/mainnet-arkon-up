@@ -1,9 +1,30 @@
 import SheetWrapper from './SheetWrapper'
 import SendSheet from './SendSheet'
 import ReceiveSheet from './ReceiveSheet'
+import useStore from '../../store'
+import type { BalDisplayMode } from '../../store'
 
 /* ─── Personalize ─── */
 function PersonalizeSheet() {
+  const { balDisplayMode, setBalDisplayMode, currency, setCurrency, showToast } = useStore()
+
+  const handleBalDisplay = (mode: BalDisplayMode) => {
+    setBalDisplayMode(mode)
+    const labels: Record<string, string> = { fiat: 'Fiat only', both: 'Fiat + Sats', sats: 'Sats only' }
+    showToast('Home balance: ' + labels[mode])
+  }
+
+  const handleCurrency = (val: string) => {
+    setCurrency(val)
+    // Update ui.js chart currency only (not balance DOM elements)
+    setTimeout(() => {
+      const w = window as any
+      if (typeof w.switchChartCurrency === 'function') {
+        try { w.switchChartCurrency(val) } catch { /* chart may not be initialized */ }
+      }
+    }, 0)
+  }
+
   return (
     <SheetWrapper id="personalize" title="Personalize Your Wallet">
       <div className="slist">
@@ -24,25 +45,25 @@ function PersonalizeSheet() {
             <div className="sr-text"><div className="sr-nm">Home Balance</div><div className="sr-sb">Choose what to show on the home screen</div></div>
           </div>
           <div className="bdm-row" style={{ marginLeft: 46 }}>
-            <button className="bdm-opt" id="bdm-fiat" onClick={() => typeof (window as any).setBalDisplay === 'function' && (window as any).setBalDisplay('fiat')}>Fiat</button>
-            <button className="bdm-opt active" id="bdm-both" onClick={() => typeof (window as any).setBalDisplay === 'function' && (window as any).setBalDisplay('both')}>Both</button>
-            <button className="bdm-opt" id="bdm-sats" onClick={() => typeof (window as any).setBalDisplay === 'function' && (window as any).setBalDisplay('sats')}>Sats</button>
+            <button className={`bdm-opt${balDisplayMode === 'fiat' ? ' active' : ''}`} data-bdm="fiat" onClick={() => handleBalDisplay('fiat')}>Fiat</button>
+            <button className={`bdm-opt${balDisplayMode === 'both' ? ' active' : ''}`} data-bdm="both" onClick={() => handleBalDisplay('both')}>Both</button>
+            <button className={`bdm-opt${balDisplayMode === 'sats' ? ' active' : ''}`} data-bdm="sats" onClick={() => handleBalDisplay('sats')}>Sats</button>
           </div>
         </div>
         {/* Currency row */}
-        <div id="cur-row" className="sr" style={{ cursor: 'default' }}>
+        <div className="sr" style={{ cursor: 'default', display: balDisplayMode === 'sats' ? 'none' : undefined }}>
           <div className="sr-ic">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="10" /><line x1="2" y1="12" x2="22" y2="12" /><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z" /></svg>
           </div>
           <div className="sr-text"><div className="sr-nm">Currency</div></div>
-          <select className="cur-setting-sel" id="cur-settings-sel" onChange={(e) => typeof (window as any).setCurSettings === 'function' && (window as any).setCurSettings(e.target)}>
+          <select className="cur-setting-sel" id="cur-settings-sel" value={currency} onChange={(e) => handleCurrency(e.target.value)}>
             <option value="USD">USD</option>
             <option value="EUR">EUR</option>
             <option value="CHF">CHF</option>
           </select>
         </div>
         {/* Sats locked row */}
-        <div id="sats-locked-row" className="sr" style={{ display: 'none', cursor: 'default' }}>
+        <div className="sr" style={{ display: balDisplayMode === 'sats' ? 'flex' : 'none', cursor: 'default' }}>
           <div className="sr-ic">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="10" /><line x1="2" y1="12" x2="22" y2="12" /><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z" /></svg>
           </div>

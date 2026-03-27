@@ -13,18 +13,23 @@ export default function HeroCard() {
   const { mainDisplay, subDisplay } = useMemo(() => {
     const sats = wallet.sats
     const price = livePrices[currency as keyof typeof livePrices] || btcUsd || 0
-    const fiatVal = price > 0 ? (sats * price) / 1e8 : 0
-    const fiatStr = fiatVal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    const priceReady = price > 0
+    const fiatVal = priceReady ? (sats * price) / 1e8 : 0
+    const fiatStr = priceReady
+      ? fiatVal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+      : '—'
     const satsStr = sats.toLocaleString()
+    const sym = currency === 'EUR' ? '€' : currency === 'CHF' ? 'CHF ' : '$'
 
     if (balDisplayMode === 'sats') {
       return { mainDisplay: satsStr, subDisplay: 'SATS' }
     }
     if (balDisplayMode === 'fiat') {
-      return { mainDisplay: `$${fiatStr}`, subDisplay: currency }
+      return { mainDisplay: priceReady ? `${sym}${fiatStr}` : '—', subDisplay: currency }
     }
-    // both
-    return { mainDisplay: satsStr, subDisplay: `$${fiatStr} ${currency}` }
+    // both — avoid "CHF 0.00 CHF" by not repeating currency when sym already contains it
+    const fiatSuffix = sym.trim() === currency ? '' : ` ${currency}`
+    return { mainDisplay: satsStr, subDisplay: priceReady ? `${sym}${fiatStr}${fiatSuffix}` : currency }
   }, [wallet.sats, balDisplayMode, currency, livePrices, btcUsd])
 
   return (
@@ -73,13 +78,11 @@ export default function HeroCard() {
         </div>
         <div
           className={`hero-amount${balanceHidden ? ' blurred' : ''}`}
-          id="bal-main"
         >
           {mainDisplay}
         </div>
         <div
           className={`hero-sub${balanceHidden ? ' blurred' : ''}`}
-          id="bal-sub"
           style={{
             fontSize: 11,
             letterSpacing: '.04em',
