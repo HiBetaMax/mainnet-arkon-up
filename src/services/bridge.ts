@@ -219,31 +219,100 @@ export function initWindowBridge(): void {
   w._storeGetState = () => useStore.getState()
   w._storeSetWallet = (wallet: any) => useStore.getState().setWallet(wallet)
 
-  // confirmSend bridge — ui.js doSend() calls this
+  // confirmSend — called by "Send Now" button in sendconfirm sheet
+  // Reads from hidden inputs populated by ui.js doSend(), then executes via wallet.ts
   w.confirmSend = async () => {
-    const store = useStore.getState()
-    const addr = (document.getElementById('s-addr') as HTMLInputElement)?.value?.trim()
-    const amtEl = document.getElementById('s-amt') as HTMLInputElement
-    const amt = parseInt(amtEl?.value) || 0
+    const rawAddress = (document.getElementById('sc-addr-full') as HTMLInputElement)?.value?.trim()
+    const address = rawAddress ? rawAddress.replace(/^(ark|bitcoin|lightning):/i, '') : ''
+    const amount = Math.floor(Number((document.getElementById('sc-amount-raw') as HTMLInputElement)?.value)) || 0
+    const netType = ((document.getElementById('sc-network-type') as HTMLInputElement)?.value || 'ark').toLowerCase()
 
-    if (!addr) {
-      store.showToast('Enter an address')
-      return
-    }
-    if (amt <= 0) {
-      store.showToast('Enter an amount')
+    if (!address) {
+      useStore.getState().showToast('Missing address or invoice')
       return
     }
 
-    const network = store.sendNetwork
-    store.setSendConfirmData({
-      address: addr,
-      amountSats: amt,
-      network,
-      fiatAmount: store.sendAmountFiat,
-      fiatCurrency: store.currency,
-    })
-    store.openSheet('sendconfirm')
-    if (typeof w.openSheet === 'function') w.openSheet('sendconfirm')
+    const detected = detectAddressType(address)
+    const routedType = detected !== 'unknown' ? detected : netType
+    const network = routedType === 'bitcoin' ? 'bitcoin' as const
+      : routedType === 'lightning' ? 'lightning' as const
+      : 'ark' as const
+
+    // For non-lightning, require amount
+    if (network !== 'lightning' && (!amount || amount <= 0)) {
+      useStore.getState().showToast('Missing or invalid amount')
+      return
+    }
+
+    const btn = document.getElementById('sc-confirm-btn') as HTMLButtonElement | null
+    const btnLabel = document.getElementById('sc-confirm-label')
+    if (btn) {
+      btn.disabled = true
+      const iconEl = btn.querySelector('svg') as SVGElement | null
+      if (iconEl) iconEl.style.animation = 'spin .6s linear infinite'
+      if (btnLabel) btnLabel.textContent = 'Sending…'
+    }
+
+    try {
+      const result = await sendPayment(address, amount, network)
+      // Close sendconfirm sheet
+      useStore.getState().closeSheet('sendconfirm')
+      const el = document.getElementById('sheet-sendconfirm')
+      if (el) el.classList.remove('open')
+
+      if (result.success) {
+        // Update send result sheet
+        const iconWrap = document.getElementById('sres-icon')
+        const iconSvg = document.getElementById('sres-icon-svg')
+        const titleEl = document.getElementById('sres-title')
+        const amtEl = document.getElementById('sres-amount')
+        const sub = document.getElementById('sres-sub')
+        if (iconWrap) iconWrap.style.background = 'var(--grns)'
+        if (iconSvg) { iconSvg.style.color = 'var(--grn)'; iconSvg.innerHTML = '<polyline points="20 6 9 17 4 12"/>' }
+        if (titleEl) titleEl.textContent = 'Payment Sent'
+        if (amtEl) amtEl.textContent = (amount || 0).toLocaleString() + ' SATS'
+        if (sub) sub.textContent = result.message
+        useStore.getState().openSheet('sendresult')
+        const sresEl = document.getElementById('sheet-sendresult')
+        if (sresEl) sresEl.classList.add('open')
+      } else {
+        useStore.getState().showToast(result.message || 'Send failed')
+      }
+    } catch (err: any) {
+      useStore.getState().closeSheet('sendconfirm')
+      const el = document.getElementById('sheet-sendconfirm')
+      if (el) el.classList.remove('open')
+
+      const msg = err?.message || 'Payment failed'
+      // Show result sheet with error
+      const iconWrap = document.getElementById('sres-icon')
+      const iconSvg = document.getElementById('sres-icon-svg')
+      const titleEl = document.getElementById('sres-title')
+      const amtEl = document.getElementById('sres-amount')
+      const sub = document.getElementById('sres-sub')
+      if (iconWrap) iconWrap.style.background = 'var(--reds)'
+      if (iconSvg) { iconSvg.style.color = 'var(--red)'; iconSvg.innerHTML = '<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>' }
+      if (titleEl) titleEl.textContent = 'Payment Failed'
+      if (amtEl) amtEl.textContent = (amount || 0).toLocaleString() + ' SATS'
+      if (sub) sub.textContent = msg
+      useStore.getState().openSheet('sendresult')
+      const sresEl = document.getElementById('sheet-sendresult')
+      if (sresEl) sresEl.classList.add('open')
+    } finally {
+      if (btn) {
+        btn.disabled = false
+        const iconEl = btn.querySelector('svg') as SVGElement | null
+        if (iconEl) iconEl.style.animation = ''
+        if (btnLabel) btnLabel.textContent = 'Send Now'
+      }
+    }
+  }
+
+  // Notification banner — ensure element exists for ui.js showNotification
+  if (!document.getElementById('notif-banner')) {
+    const banner = document.createElement('div')
+    banner.id = 'notif-banner'
+    banner.className = 'notif-banner'
+    document.body.appendChild(banner)
   }
 }
