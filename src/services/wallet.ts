@@ -162,17 +162,19 @@ export async function refreshTransactions(): Promise<void> {
     const registry: Record<string, TxDetail> = {}
 
     for (const tx of history) {
-      const cls = tx.type === 'incoming' ? 'in' : tx.type === 'outgoing' ? 'out' : 'pnd'
+      // Match main.js txClass() logic — SDK returns uppercase types like 'RECEIVED', 'SENT'
+      const t = String(tx.type || '').toLowerCase()
+      const cls =
+        (t.includes('receiv') || t === 'txreceived') ? 'in' :
+        (t.includes('sent') || t === 'txsent') ? 'out' :
+        t.includes('board') ? 'in' :
+        (t.includes('exit') || t.includes('commit')) ? 'out' :
+        tx.settled === false ? 'pnd' : 'out'
       const label =
-        cls === 'in'
-          ? tx.network === 'Bitcoin' && tx.boardingTxid
-            ? 'Boarding deposit'
-            : 'Received'
-          : cls === 'out'
-            ? tx.network === 'Bitcoin (Exit)'
-              ? 'Exit to on-chain'
-              : 'Sent'
-            : 'Pending'
+        t.includes('board') ? 'Boarding deposit' :
+        (t.includes('exit') || t.includes('commit')) ? 'Exit to on-chain' :
+        cls === 'in' ? 'Received' :
+        cls === 'pnd' ? 'Pending' : 'Sent'
       const statusLabel = tx.settled ? 'Settled' : 'Preconfirmed'
 
       registry[tx.id] = {

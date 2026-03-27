@@ -73,6 +73,14 @@ export function initWindowBridge(): void {
   w.updateSendAmountFields = () => { /* no-op: React SendSheet manages its own DOM */ }
   w.updateRcvAmountFields = () => { /* no-op: React ReceiveSheet manages its own DOM */ }
 
+  // Balance display is now managed by React HeroCard — prevent ui.js DOM overwrites
+  w.walletUpdateDisplay = () => { /* no-op: React HeroCard manages balance display */ }
+  w.toggleBalance = () => { useStore.getState().toggleBalanceHidden() }
+  // applyCur: sync currency to store instead of writing to DOM
+  w.applyCur = (c: string) => {
+    if (c && c !== 'SATS') useStore.getState().setCurrency(c)
+  }
+
   // QR generation is now handled by React QRPage useEffect — prevent ui.js duplicate
   w.initMainQR = () => { /* no-op: React QRPage manages QR generation */ }
 

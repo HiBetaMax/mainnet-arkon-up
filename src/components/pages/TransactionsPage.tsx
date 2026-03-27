@@ -13,9 +13,12 @@ const FILTERS: { id: TxFilter; label: string }[] = [
 
 const PAGE_SIZE = 20
 
-function formatTxAmount(
+function formatSats(sats: number): string {
+  return Math.abs(sats).toLocaleString() + ' sats'
+}
+
+function formatFiat(
   sats: number,
-  balDisplayMode: string,
   currency: string,
   livePrices: Record<string, number>,
   btcUsd: number
@@ -28,11 +31,7 @@ function formatTxAmount(
     maximumFractionDigits: 2,
   })
   const sym = currency === 'EUR' ? '\u20AC' : currency === 'CHF' ? 'CHF ' : '$'
-
-  if (balDisplayMode === 'fiat') return `${sym}${fiatStr}`
-  if (balDisplayMode === 'both')
-    return `${absSats.toLocaleString()} sats \u00B7 ${sym}${fiatStr}`
-  return `${absSats.toLocaleString()} sats`
+  return `${sym}${fiatStr}`
 }
 
 function TxIcon({ cls }: { cls: string }) {
@@ -66,7 +65,6 @@ export default function TransactionsPage() {
   const setTxFilter = useStore((s) => s.setTxFilter)
   const setSelectedTxId = useStore((s) => s.setSelectedTxId)
   const openSheet = useStore((s) => s.openSheet)
-  const balDisplayMode = useStore((s) => s.balDisplayMode)
   const currency = useStore((s) => s.currency)
   const livePrices = useStore((s) => s.livePrices)
   const btcUsd = useStore((s) => s.btcUsd)
@@ -285,9 +283,12 @@ export default function TransactionsPage() {
               <div className="txamt">
                 <div className={`txb ${tx.cls || ''}`}>
                   {tx.cls === 'in' ? '+' : '\u2212'}
-                  {formatTxAmount(
+                  {formatSats(tx.amount)}
+                </div>
+                <div className="txf">
+                  {tx.cls === 'in' ? '+' : '\u2212'}
+                  {formatFiat(
                     tx.amount,
-                    balDisplayMode,
                     currency,
                     livePrices as unknown as Record<string, number>,
                     btcUsd ?? 0

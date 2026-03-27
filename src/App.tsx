@@ -1,5 +1,7 @@
 import { useEffect, useCallback } from 'react'
 import useStore from './store'
+import { bootWallet, startAutoLockListeners } from './services/wallet'
+import { initWindowBridge } from './services/bridge'
 
 // Boot
 import SplashScreen from './components/boot/SplashScreen'
@@ -20,14 +22,18 @@ export default function App() {
   const bootState = useStore((s) => s.bootState)
   const closeAllSheets = useStore((s) => s.closeAllSheets)
 
-  // Early wallet check + splash routing
   useEffect(() => {
+    // Set up window bridge so ui.js can read store data
+    // MUST run before boot — sets __REACT_BOOT_ACTIVE to prevent main.js double-boot
+    initWindowBridge()
+
     const v2 = localStorage.getItem('arkade_wallet_privkey_mainnet_v2_enc')
     const v1 = localStorage.getItem('arkade_wallet_privkey_mainnet_v1')
     const hasWallet = !!(v2) || !!(v1 && v1.length === 64 && /^[0-9a-fA-F]+$/.test(v1))
 
     useStore.getState().setHasExistingWallet(hasWallet)
 
+    // Remove SDK loading overlay
     function removeSdkLoading() {
       const el = document.getElementById('sdk-loading')
       if (el) {
@@ -36,54 +42,21 @@ export default function App() {
       }
     }
 
-    function markReady() {
-      removeSdkLoading()
-      useStore.getState().setBootState('ready')
-    }
-
-    // After React renders, re-populate addresses from main.js globals
-    function syncAddresses() {
-      const w = window as any
-      if (typeof w._setLiveAddresses === 'function' && w._arkAddr) {
-        w._setLiveAddresses(w._arkAddr, w._boardingAddr)
-      }
-    }
-
-    // Register callback for main.js boot completion
-    ;(window as any)._onBootReady = () => {
-      markReady()
-      // Give React one tick to render, then sync addresses
-      setTimeout(syncAddresses, 150)
-    }
-
     if (hasWallet) {
-      useStore.getState().setBootState('booting')
-
-      // Trigger boot via main.js
-      let bootAttempts = 0
-      function tryBoot() {
-        bootAttempts++
-        if (typeof (window as any)._bootApp === 'function') {
-          console.log('[App] Calling _bootApp() — attempt', bootAttempts)
-          ;(window as any)._bootApp()
-        } else if (bootAttempts < 100) {
-          setTimeout(tryBoot, 100)
-        } else {
-          console.error('[App] _bootApp never became available')
+      // Boot wallet directly via typed service (not main.js)
+      bootWallet().then(() => {
+        removeSdkLoading()
+        // Sync addresses to ui.js after boot
+        const w = window as any
+        if (typeof w._setLiveAddresses === 'function') {
+          const store = useStore.getState()
+          w._setLiveAddresses(store.arkAddress, store.boardingAddress)
         }
-      }
-      setTimeout(tryBoot, 100)
-
-      // Poll for _arkAddr — set after addresses are fetched in boot()
-      const check = setInterval(() => {
-        if ((window as any)._arkAddr) {
-          clearInterval(check)
-          markReady()
-          setTimeout(syncAddresses, 150)
-        }
-      }, 200)
-      // Safety timeout
-      setTimeout(() => clearInterval(check), 15000)
+        startAutoLockListeners()
+      }).catch((err) => {
+        console.error('[App] Boot failed:', err)
+        removeSdkLoading()
+      })
     } else {
       removeSdkLoading()
       useStore.getState().setSplashStep(2)
@@ -95,7 +68,6 @@ export default function App() {
     (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         closeAllSheets()
-        // Also close DOM-based sheets (legacy compat)
         document.querySelectorAll('.overlay.open').forEach((el) => el.classList.remove('open'))
       }
     },
