@@ -766,7 +766,7 @@ select.finp{cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg xmlns
 
 /* Receive sheet QR */
 .sht-qr{display:flex;justify-content:center;margin:4px 0 18px}
-.sht-qr-inner{border-radius:18px;background:#fff;padding:12px;display:inline-flex;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(0,0,0,.28);overflow:hidden}
+.sht-qr-inner{min-width:192px;min-height:192px;border-radius:18px;background:#fff;padding:12px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(0,0,0,.28);overflow:hidden}
 .addr-row{background:var(--surf);border:1px solid var(--bdr);border-radius:var(--r-md);padding:12px 14px;display:flex;align-items:center;gap:10px;margin-bottom:14px}
 .addr-txt{flex:1;font-size:11px;color:var(--t2);word-break:break-all;line-height:1.5;font-weight:500}
 

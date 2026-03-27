@@ -1,8 +1,28 @@
+import { useEffect } from 'react'
 import useStore from '../../store'
 
 export default function QRPage() {
   const qrTab = useStore((s) => s.qrTab)
   const setQrTab = useStore((s) => s.setQrTab)
+  const activePage = useStore((s) => s.activePage)
+
+  const arkAddress = useStore((s) => s.arkAddress)
+
+  // Generate QR when page is active and address is ready
+  useEffect(() => {
+    if (activePage !== 'qr') return
+    const addr = arkAddress && !arkAddress.startsWith('Connecting') ? arkAddress : ''
+    if (!addr) return
+    const el = document.getElementById('qr-main-canvas')
+    if (!el || el.children.length > 0) return // already has QR
+    try {
+      new (window as any).QRCode(el, {
+        text: addr, width: 186, height: 186,
+        colorDark: '#000000', colorLight: '#ffffff',
+        correctLevel: (window as any).QRCode?.CorrectLevel?.M,
+      })
+    } catch { /* QRCode lib not loaded */ }
+  }, [activePage, arkAddress])
 
   const handleTabChange = (tab: 'mine' | 'scan') => {
     setQrTab(tab)
@@ -14,6 +34,11 @@ export default function QRPage() {
 
   return (
     <div style={{ padding: '0 20px 28px' }}>
+      <div className="pg-head">
+        <h2>QR Code</h2>
+        <p>Scan or share your address</p>
+      </div>
+
       {/* My QR / Scan QR tabs */}
       <div className="tab-toggle" style={{ marginBottom: 14 }}>
         <div
