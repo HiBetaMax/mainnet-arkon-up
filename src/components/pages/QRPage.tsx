@@ -14,7 +14,9 @@ export default function QRPage() {
     const addr = arkAddress && !arkAddress.startsWith('Connecting') ? arkAddress : ''
     if (!addr) return
     const el = document.getElementById('qr-main-canvas')
-    if (!el || el.children.length > 0) return // already has QR
+    if (!el) return
+    // Clear any existing QR (prevents doubling from ui.js race)
+    el.innerHTML = ''
     try {
       new (window as any).QRCode(el, {
         text: addr, width: 186, height: 186,

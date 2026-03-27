@@ -68,6 +68,9 @@ export function initWindowBridge(): void {
   w.updateSendAmountFields = () => { /* no-op: React SendSheet manages its own DOM */ }
   w.updateRcvAmountFields = () => { /* no-op: React ReceiveSheet manages its own DOM */ }
 
+  // QR generation is now handled by React QRPage useEffect — prevent ui.js duplicate
+  w.initMainQR = () => { /* no-op: React QRPage manages QR generation */ }
+
   // Override openSheet to use Zustand for React-managed sheets
   // Wait for ui.js to register its openSheet first, then wrap it
   const patchOpenSheet = () => {
