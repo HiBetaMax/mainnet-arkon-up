@@ -14,11 +14,6 @@ export default function QRPage() {
 
   return (
     <div style={{ padding: '0 20px 28px' }}>
-      <div className="pg-head">
-        <div className="pg-title">QR Code</div>
-        <div className="pg-sub">Scan or share your address</div>
-      </div>
-
       {/* My QR / Scan QR tabs */}
       <div className="tab-toggle" style={{ marginBottom: 14 }}>
         <div
