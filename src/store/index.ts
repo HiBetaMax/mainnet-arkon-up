@@ -364,7 +364,7 @@ const useStore = create<AppState>((set, get) => ({
 
   // ── Prices ──
   btcUsd: null,
-  livePrices: { USD: 0, EUR: 0, CHF: 0 },
+  livePrices: { USD: 96420, EUR: 88640, CHF: 85910 },
   chartBasePrice: null,
   feeRates: null,
 
