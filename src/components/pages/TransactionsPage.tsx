@@ -112,6 +112,9 @@ export default function TransactionsPage() {
     (tx: TxDetail) => {
       setSelectedTxId(tx.id)
       openSheet('txdetail')
+      // Also add CSS class since SheetWrapper uses class-based visibility
+      const el = document.getElementById('sheet-txdetail')
+      if (el) el.classList.add('open')
     },
     [setSelectedTxId, openSheet]
   )
