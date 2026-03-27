@@ -81,10 +81,7 @@ export default function BottomNav() {
       const content = document.getElementById('content')
       if (content) content.scrollTop = 0
 
-      // Legacy: trigger QR init or tx refresh
-      if (id === 'qr' && typeof (window as any).initMainQR === 'function') {
-        ;(window as any).initMainQR()
-      }
+      // Legacy: trigger tx refresh (QR is now handled by React useEffect in QRPage)
       if (id === 'transactions' && typeof (window as any).refreshTransactionsPage === 'function') {
         ;(window as any).refreshTransactionsPage()
       }
