@@ -1,6 +1,7 @@
 import SheetWrapper from './SheetWrapper'
 import SendSheet from './SendSheet'
 import ReceiveSheet from './ReceiveSheet'
+import TxDetailSheetComponent from './TxDetailSheet'
 import useStore from '../../store'
 import type { BalDisplayMode } from '../../store'
 
@@ -283,14 +284,7 @@ function ExportSheet() {
   )
 }
 
-/* ─── Transaction Detail ─── */
-function TxDetailSheet() {
-  return (
-    <SheetWrapper id="txdetail" title="Transaction" titleId="txd-title">
-      <div id="txd-body" />
-    </SheetWrapper>
-  )
-}
+/* ─── Transaction Detail (now imported from TxDetailSheet.tsx) ─── */
 
 /* ─── App Sheet ─── */
 function AppSheet() {
@@ -896,7 +890,7 @@ export default function AllSheets() {
       <NotificationsSheet />
       <ServerInfoSheet />
       <ExportSheet />
-      <TxDetailSheet />
+      <TxDetailSheetComponent />
       <AppSheet />
       <AdvancedSheet />
       <PasswordSettingsSheet />

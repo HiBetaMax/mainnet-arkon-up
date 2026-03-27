@@ -10,6 +10,7 @@
 
 import useStore from '../store'
 import {
+  bootWallet,
   sendPayment,
   sendBatch,
   generateInvoice,
@@ -26,6 +27,7 @@ import {
   savePasswordSettings,
   unlockWithPassword,
   lockApp,
+  startAutoLockListeners,
   getArkFees,
   getVtxoStatus,
   checkAndRenewVtxos,
@@ -43,6 +45,9 @@ const w = window as any
  * Call once after React mounts (in App.tsx useEffect).
  */
 export function initWindowBridge(): void {
+  // Signal that React is managing the boot — prevents main.js boot() from running
+  w.__REACT_BOOT_ACTIVE = true
+
   // ── Sync store state to window on every change ──
   const syncToWindow = () => {
     const s = useStore.getState()
@@ -117,11 +122,14 @@ export function initWindowBridge(): void {
   w._getLightningSwaps = getLightningSwaps
   w._decodeLightningInvoice = decodeLightningPaymentRequest
 
-  // Refresh functions
+  // Refresh functions — override both underscore and bare names so main.js
+  // and ui.js stray calls route through wallet.ts → Zustand store
   w._refreshTransactions = refreshTransactions
   w._refreshBalance = refreshBalance
   w._refreshBtcPrice = refreshBtcPrice
   w._refreshFeeRates = refreshFeeRates
+  w.refreshTransactionsPage = () => refreshTransactions()
+  w.refreshTransactions = () => refreshTransactions()
 
   // Address detection
   w._detectAddressType = detectAddressType
@@ -170,9 +178,33 @@ export function initWindowBridge(): void {
   w._ARK_SERVER_URL = ARK_SERVER_URL
   w._ESPLORA_API_URL = ESPLORA_API_URL
 
-  // Boot entry point (no-op now — boot is handled by App.tsx directly)
+  // Boot entry point — called by SplashScreen after new wallet creation/restore.
+  // Routes through wallet.ts bootWallet() instead of main.js boot() to avoid
+  // double-init and ensure all state flows through Zustand.
   w._bootApp = () => {
-    console.log('[Bridge] _bootApp called but boot is now managed by React')
+    console.log('[Bridge] _bootApp → bootWallet()')
+    bootWallet().then(() => {
+      startAutoLockListeners()
+      // Sync addresses to ui.js after boot
+      const store = useStore.getState()
+      if (typeof w._setLiveAddresses === 'function') {
+        w._setLiveAddresses(store.arkAddress, store.boardingAddress)
+      }
+    }).catch((err: any) => {
+      console.error('[Bridge] bootWallet failed:', err)
+    })
+  }
+
+  // Transaction page — React manages these now
+  w.setFil = () => { /* no-op: React TransactionsPage handles filtering */ }
+  w.loadMoreTx = () => { /* no-op: React TransactionsPage handles pagination */ }
+  w.loadMoreTx2 = () => { /* no-op */ }
+  w.showLiveTxDetail = (rowId: string) => {
+    // Map main.js rowId (e.g. 'tx_live_0') to actual tx id in store
+    const reg = w._TX_REGISTRY?.[rowId]
+    const txId = reg?.txid || rowId
+    useStore.getState().setSelectedTxId(txId)
+    useStore.getState().openSheet('txdetail')
   }
 
   // Store actions exposed for ui.js

@@ -37,10 +37,6 @@ export default function RecentTx() {
 
   const handleSeeAll = () => {
     setActivePage('transactions')
-    document.querySelectorAll('.page').forEach((x) => x.classList.remove('active'))
-    document.querySelectorAll('.ni').forEach((x) => x.classList.remove('active'))
-    document.getElementById('page-transactions')?.classList.add('active')
-    document.getElementById('nav-transactions')?.classList.add('active')
   }
 
   return (
