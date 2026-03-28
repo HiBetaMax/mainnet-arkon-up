@@ -81,8 +81,9 @@ export function initWindowBridge(): void {
     if (c && c !== 'SATS') useStore.getState().setCurrency(c)
   }
 
-  // QR generation is now handled by React QRPage useEffect — prevent ui.js duplicate
+  // QR generation is now handled by React QRPage — prevent ui.js duplicate
   w.initMainQR = () => { /* no-op: React QRPage manages QR generation */ }
+  w.setAddrType = () => { /* no-op: React QRPage manages address type switching */ }
 
   // Override openSheet to use Zustand for React-managed sheets
   // Wait for ui.js to register its openSheet first, then wrap it

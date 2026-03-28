@@ -1,30 +1,88 @@
-import { useEffect } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import useStore from '../../store'
+
+type AddrType = 'ark' | 'lightning' | 'onchain'
 
 export default function QRPage() {
   const qrTab = useStore((s) => s.qrTab)
   const setQrTab = useStore((s) => s.setQrTab)
   const activePage = useStore((s) => s.activePage)
-
   const arkAddress = useStore((s) => s.arkAddress)
+  const boardingAddress = useStore((s) => s.boardingAddress)
 
-  // Generate QR when page is active and address is ready
+  const [addrType, setAddrType] = useState<AddrType>('ark')
+  const qrRef = useRef<any>(null)
+
+  // Resolve which address to show
+  const currentAddr = addrType === 'onchain'
+    ? (boardingAddress && !boardingAddress.startsWith('Connecting') ? boardingAddress : '')
+    : (arkAddress && !arkAddress.startsWith('Connecting') ? arkAddress : '')
+
+  // Generate/update QR when page is active and address changes
   useEffect(() => {
-    if (activePage !== 'qr') return
-    const addr = arkAddress && !arkAddress.startsWith('Connecting') ? arkAddress : ''
-    if (!addr) return
+    if (activePage !== 'qr' || addrType === 'lightning') return
+    if (!currentAddr) return
     const el = document.getElementById('qr-main-canvas')
     if (!el) return
-    // Clear any existing QR (prevents doubling from ui.js race)
-    el.innerHTML = ''
-    try {
-      new (window as any).QRCode(el, {
-        text: addr, width: 186, height: 186,
+
+    const QRCode = (window as any).QRCode
+    if (!QRCode) return
+
+    // Reuse existing instance or create new one
+    if (qrRef.current) {
+      try {
+        qrRef.current.clear()
+        qrRef.current.makeCode(currentAddr)
+      } catch {
+        // Fallback: recreate
+        el.innerHTML = ''
+        qrRef.current = new QRCode(el, {
+          text: currentAddr, width: 186, height: 186,
+          colorDark: '#000000', colorLight: '#ffffff',
+          correctLevel: QRCode.CorrectLevel?.M,
+        })
+      }
+    } else {
+      el.innerHTML = ''
+      qrRef.current = new QRCode(el, {
+        text: currentAddr, width: 186, height: 186,
         colorDark: '#000000', colorLight: '#ffffff',
-        correctLevel: (window as any).QRCode?.CorrectLevel?.M,
+        correctLevel: QRCode.CorrectLevel?.M,
       })
-    } catch { /* QRCode lib not loaded */ }
-  }, [activePage, arkAddress])
+    }
+
+    // Update address text
+    const addrEl = document.getElementById('qr-addr-val')
+    if (addrEl) addrEl.textContent = currentAddr
+  }, [activePage, addrType, currentAddr])
+
+  const handleAddrType = useCallback((type: AddrType) => {
+    setAddrType(type)
+
+    const staticP = document.getElementById('qr-static-panel')
+    const lnP = document.getElementById('qr-lightning-panel')
+
+    if (type === 'lightning') {
+      if (staticP) staticP.style.display = 'none'
+      if (lnP) lnP.style.display = 'block'
+      // Reset lightning form
+      const resultEl = document.getElementById('qr-ln-result')
+      const formEl = document.getElementById('qr-ln-form-wrap')
+      if (resultEl) resultEl.style.display = 'none'
+      if (formEl) formEl.style.display = 'block'
+      const amtEl = document.getElementById('qr-ln-amt') as HTMLInputElement
+      if (amtEl) amtEl.value = ''
+      const memoEl = document.getElementById('qr-ln-memo') as HTMLInputElement
+      if (memoEl) memoEl.value = ''
+      const fiatEl = document.getElementById('qr-ln-fiat')
+      if (fiatEl) fiatEl.textContent = 'Enter amount to see fiat equivalent'
+      const btn = document.getElementById('qr-ln-gen-btn') as HTMLButtonElement
+      if (btn) { btn.disabled = true; btn.style.opacity = '.5' }
+    } else {
+      if (staticP) staticP.style.display = 'block'
+      if (lnP) lnP.style.display = 'none'
+    }
+  }, [])
 
   const handleTabChange = (tab: 'mine' | 'scan') => {
     setQrTab(tab)
@@ -62,14 +120,11 @@ export default function QRPage() {
       {/* My QR Panel */}
       <div id="qr-mine-panel" style={{ display: qrTab === 'mine' ? 'block' : 'none' }}>
         <div className="qr-type-row" style={{ marginBottom: 16 }}>
-          {['ark', 'lightning', 'onchain'].map((t, i) => (
+          {(['ark', 'lightning', 'onchain'] as AddrType[]).map((t) => (
             <div
               key={t}
-              className={`qtt${i === 0 ? ' active' : ''}`}
-              onClick={(e) =>
-                typeof (window as any).setAddrType === 'function' &&
-                (window as any).setAddrType(e.currentTarget, t)
-              }
+              className={`qtt${addrType === t ? ' active' : ''}`}
+              onClick={() => handleAddrType(t)}
             >
               {t === 'onchain' ? 'On-chain' : t.charAt(0).toUpperCase() + t.slice(1)}
             </div>

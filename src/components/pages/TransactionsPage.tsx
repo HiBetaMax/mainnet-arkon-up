@@ -65,6 +65,7 @@ export default function TransactionsPage() {
   const setTxFilter = useStore((s) => s.setTxFilter)
   const setSelectedTxId = useStore((s) => s.setSelectedTxId)
   const openSheet = useStore((s) => s.openSheet)
+  const balDisplayMode = useStore((s) => s.balDisplayMode)
   const currency = useStore((s) => s.currency)
   const livePrices = useStore((s) => s.livePrices)
   const btcUsd = useStore((s) => s.btcUsd)
@@ -281,19 +282,34 @@ export default function TransactionsPage() {
                 </div>
               </div>
               <div className="txamt">
-                <div className={`txb ${tx.cls || ''}`}>
-                  {tx.cls === 'in' ? '+' : '\u2212'}
-                  {formatSats(tx.amount)}
-                </div>
-                <div className="txf">
-                  {tx.cls === 'in' ? '+' : '\u2212'}
-                  {formatFiat(
-                    tx.amount,
-                    currency,
-                    livePrices as unknown as Record<string, number>,
-                    btcUsd ?? 0
-                  )}
-                </div>
+                {balDisplayMode !== 'fiat' && (
+                  <div className={`txb ${tx.cls || ''}`}>
+                    {tx.cls === 'in' ? '+' : '\u2212'}
+                    {formatSats(tx.amount)}
+                  </div>
+                )}
+                {balDisplayMode === 'fiat' && (
+                  <div className={`txb ${tx.cls || ''}`}>
+                    {tx.cls === 'in' ? '+' : '\u2212'}
+                    {formatFiat(
+                      tx.amount,
+                      currency,
+                      livePrices as unknown as Record<string, number>,
+                      btcUsd ?? 0
+                    )}
+                  </div>
+                )}
+                {balDisplayMode === 'both' && (
+                  <div className="txf">
+                    {tx.cls === 'in' ? '+' : '\u2212'}
+                    {formatFiat(
+                      tx.amount,
+                      currency,
+                      livePrices as unknown as Record<string, number>,
+                      btcUsd ?? 0
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           ))

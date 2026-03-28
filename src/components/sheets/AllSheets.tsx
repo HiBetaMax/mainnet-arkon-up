@@ -7,7 +7,7 @@ import type { BalDisplayMode } from '../../store'
 
 /* ─── Personalize ─── */
 function PersonalizeSheet() {
-  const { balDisplayMode, setBalDisplayMode, currency, setCurrency, showToast } = useStore()
+  const { balDisplayMode, setBalDisplayMode, currency, setCurrency, chartsEnabled, setChartsEnabled, showToast } = useStore()
 
   const handleBalDisplay = (mode: BalDisplayMode) => {
     setBalDisplayMode(mode)
@@ -70,6 +70,14 @@ function PersonalizeSheet() {
           </div>
           <div className="sr-text"><div className="sr-nm">Currency</div></div>
           <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--acc2)', background: 'var(--accs)', padding: '5px 12px', borderRadius: 'var(--r-pill)' }}>SATS</span>
+        </div>
+        {/* Charts toggle */}
+        <div className="sr" style={{ cursor: 'default' }}>
+          <div className="sr-ic">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="6" y1="20" x2="6" y2="14" /></svg>
+          </div>
+          <div className="sr-text"><div className="sr-nm">Price Chart</div><div className="sr-sb">Show BTC chart on home screen</div></div>
+          <div className={`tog${chartsEnabled ? ' on' : ''}`} onClick={() => { setChartsEnabled(!chartsEnabled); showToast(chartsEnabled ? 'Chart hidden' : 'Chart visible') }} />
         </div>
         {/* Color Scheme */}
         <div className="sr" style={{ cursor: 'default', flexDirection: 'column', alignItems: 'stretch', gap: 10 }}>

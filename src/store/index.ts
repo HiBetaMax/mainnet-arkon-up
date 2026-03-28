@@ -154,6 +154,7 @@ export interface AppState {
   currency: string
   theme: 'dark' | 'light'
   colorScheme: string
+  chartsEnabled: boolean
 
   // ── Transactions ──
   txRegistry: Record<string, TxDetail>
@@ -257,6 +258,7 @@ export interface AppState {
   setCurrency: (currency: string) => void
   setTheme: (theme: 'dark' | 'light') => void
   setColorScheme: (scheme: string) => void
+  setChartsEnabled: (enabled: boolean) => void
 
   // Transactions
   setTxRegistry: (registry: Record<string, TxDetail>) => void
@@ -379,6 +381,7 @@ const useStore = create<AppState>((set, get) => ({
   currency: localStorage.getItem('arkon_currency') || 'USD',
   theme: (document.documentElement.getAttribute('data-theme') as 'dark' | 'light') || 'dark',
   colorScheme: localStorage.getItem('arkon_color_scheme') || 'blue',
+  chartsEnabled: localStorage.getItem('arkon_charts_enabled') !== 'false',
 
   // ── Transactions ──
   txRegistry: {},
@@ -503,6 +506,10 @@ const useStore = create<AppState>((set, get) => ({
   setTheme: (theme) => {
     document.documentElement.setAttribute('data-theme', theme)
     set({ theme })
+  },
+  setChartsEnabled: (enabled) => {
+    localStorage.setItem('arkon_charts_enabled', String(enabled))
+    set({ chartsEnabled: enabled })
   },
   setColorScheme: (scheme) => {
     localStorage.setItem('arkon_color_scheme', scheme)
