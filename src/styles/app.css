@@ -726,8 +726,46 @@ select.finp{cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg xmlns
 }
 
 /* ══════════════════════════════════════════
-   BOTTOM SHEETS
+   SUB-PAGES (full-screen navigation pages)
 ══════════════════════════════════════════ */
+.subpage{
+  position:fixed;
+  top:0;bottom:56px;left:0;right:0;
+  z-index:300;
+  background:var(--bg);
+  display:none;
+  flex-direction:column;
+  overflow:hidden;
+}
+.subpage.open{display:flex;animation:sp-in .22s ease}
+@keyframes sp-in{from{transform:translateX(40px);opacity:0}to{transform:translateX(0);opacity:1}}
+
+.subpage-head{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 16px 10px;
+  border-bottom:1px solid var(--bdr);
+  flex-shrink:0;
+  min-height:52px;
+}
+.subpage-back{
+  width:32px;height:32px;border-radius:50%;
+  background:none;border:none;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  color:var(--t2);transition:background .15s;
+  flex-shrink:0;padding:0;
+}
+.subpage-back:active{background:var(--bg3)}
+.subpage-title{
+  font-size:17px;font-weight:800;letter-spacing:-.01em;color:var(--t1);
+  text-align:center;flex:1;
+}
+.subpage-body{
+  flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;
+  overscroll-behavior:contain;padding:0 20px 28px;
+}
+.subpage-body::-webkit-scrollbar{display:none}
+
+/* Legacy overlay compat (keep for any remaining ui.js sheets) */
 .overlay{
   position:fixed;inset:0;z-index:400;
   background:var(--ov);backdrop-filter:blur(8px);

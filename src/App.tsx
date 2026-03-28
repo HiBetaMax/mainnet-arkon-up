@@ -68,7 +68,7 @@ export default function App() {
     (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         closeAllSheets()
-        document.querySelectorAll('.overlay.open').forEach((el) => el.classList.remove('open'))
+        document.querySelectorAll('.overlay.open, .subpage.open').forEach((el) => el.classList.remove('open'))
       }
     },
     [closeAllSheets]
@@ -87,9 +87,9 @@ export default function App() {
       <div id="app" style={{ opacity: showApp ? 1 : 0 }}>
         <TopBar />
         <Content />
+        <AllSheets />
         <BottomNav />
       </div>
-      <AllSheets />
       <UnlockGate />
       <Toast />
     </>

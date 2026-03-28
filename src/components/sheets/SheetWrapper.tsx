@@ -11,15 +11,14 @@ interface SheetWrapperProps {
   customHead?: ReactNode
 }
 
-export default function SheetWrapper({ id, title, titleId, children, maxHeight, zIndex, customHead }: SheetWrapperProps) {
+export default function SheetWrapper({ id, title, titleId, children, zIndex, customHead }: SheetWrapperProps) {
   const isOpen = useStore((s) => s.openSheets.includes(id))
   const closeSheet = useStore((s) => s.closeSheet)
-  const overlayRef = useRef<HTMLDivElement>(null)
-  const overlayStyle = zIndex ? { zIndex } : undefined
+  const pageRef = useRef<HTMLDivElement>(null)
 
-  // Sync Zustand state → DOM class (for CSS animations)
+  // Sync Zustand state → DOM class (for CSS animations + legacy compat)
   useEffect(() => {
-    const el = overlayRef.current
+    const el = pageRef.current
     if (!el) return
     if (isOpen) {
       el.classList.add('open')
@@ -30,7 +29,7 @@ export default function SheetWrapper({ id, title, titleId, children, maxHeight, 
 
   // Also listen for DOM class changes from ui.js → sync to Zustand
   useEffect(() => {
-    const el = overlayRef.current
+    const el = pageRef.current
     if (!el) return
     const observer = new MutationObserver(() => {
       const hasOpen = el.classList.contains('open')
@@ -45,32 +44,34 @@ export default function SheetWrapper({ id, title, titleId, children, maxHeight, 
     return () => observer.disconnect()
   }, [id])
 
-  const handleClose = () => {
+  const handleBack = () => {
     closeSheet(id)
-    // Also remove DOM class directly for immediate visual feedback
-    overlayRef.current?.classList.remove('open')
+    pageRef.current?.classList.remove('open')
   }
 
   return (
-    <div className="overlay" id={`sheet-${id}`} ref={overlayRef} style={overlayStyle}>
-      <div className="sheet" style={maxHeight ? { maxHeight } : undefined}>
-        <div className="sheet-handle-row">
-          <div className="sheet-handle" />
-        </div>
-        {customHead
-          ? customHead
-          : title !== false && (
-              <div className="sheet-head">
-                <span className="sheet-title" id={titleId || undefined}>
-                  {title}
-                </span>
-                <button className="sheet-close" onClick={handleClose}>
-                  {'\u2715'}
-                </button>
-              </div>
-            )}
-        <div className="sheet-body">{children}</div>
-      </div>
+    <div
+      className="subpage"
+      id={`sheet-${id}`}
+      ref={pageRef}
+      style={zIndex ? { zIndex } : undefined}
+    >
+      {customHead
+        ? customHead
+        : title !== false && (
+            <div className="subpage-head">
+              <button className="subpage-back" onClick={handleBack} aria-label="Back">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ width: 20, height: 20 }}>
+                  <polyline points="15 18 9 12 15 6" />
+                </svg>
+              </button>
+              <span className="subpage-title" id={titleId || undefined}>
+                {title}
+              </span>
+              <div style={{ width: 32 }} />
+            </div>
+          )}
+      <div className="subpage-body">{children}</div>
     </div>
   )
 }
