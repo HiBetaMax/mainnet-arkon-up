@@ -730,7 +730,7 @@ select.finp{cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg xmlns
 ══════════════════════════════════════════ */
 .subpage{
   position:fixed;
-  top:0;bottom:56px;left:0;right:0;
+  top:56px;bottom:61px;left:0;right:0;
   z-index:300;
   background:var(--bg);
   display:none;
