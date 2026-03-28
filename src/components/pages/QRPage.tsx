@@ -28,28 +28,14 @@ export default function QRPage() {
     const QRCode = (window as any).QRCode
     if (!QRCode) return
 
-    // Reuse existing instance or create new one
-    if (qrRef.current) {
-      try {
-        qrRef.current.clear()
-        qrRef.current.makeCode(currentAddr)
-      } catch {
-        // Fallback: recreate
-        el.innerHTML = ''
-        qrRef.current = new QRCode(el, {
-          text: currentAddr, width: 186, height: 186,
-          colorDark: '#000000', colorLight: '#ffffff',
-          correctLevel: QRCode.CorrectLevel?.M,
-        })
-      }
-    } else {
-      el.innerHTML = ''
-      qrRef.current = new QRCode(el, {
-        text: currentAddr, width: 186, height: 186,
-        colorDark: '#000000', colorLight: '#ffffff',
-        correctLevel: QRCode.CorrectLevel?.M,
-      })
-    }
+    // Always destroy old instance and clear DOM to prevent doubling
+    qrRef.current = null
+    el.innerHTML = ''
+    qrRef.current = new QRCode(el, {
+      text: currentAddr, width: 186, height: 186,
+      colorDark: '#000000', colorLight: '#ffffff',
+      correctLevel: QRCode.CorrectLevel?.M,
+    })
 
     // Update address text
     const addrEl = document.getElementById('qr-addr-val')

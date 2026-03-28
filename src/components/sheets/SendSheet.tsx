@@ -202,7 +202,8 @@ export default function SendSheet() {
       showToast('Please enter an amount')
       return
     }
-    if (sendAmountSats > wallet.sats) {
+    const available = sendNetwork === 'ark' ? wallet.offchain : wallet.sats
+    if (sendAmountSats > available) {
       showToast('Insufficient balance')
       return
     }
@@ -223,13 +224,9 @@ export default function SendSheet() {
       } else {
         showToast(result.message || 'Send failed')
       }
-    } catch (err) {
-      console.error('[SendSheet] sendPayment error, trying fallback:', err)
-      if (typeof (window as any).confirmSend === 'function') {
-        (window as any).confirmSend()
-      } else {
-        showToast('Send failed')
-      }
+    } catch (err: any) {
+      console.error('[SendSheet] sendPayment error:', err)
+      showToast(err?.message || 'Send failed')
     }
   }, [
     sendInProgress, sendAddress, sendAmountSats, wallet.sats,
