@@ -13,7 +13,7 @@ interface SheetWrapperProps {
 }
 
 /** Duration of close animation in ms — must match CSS */
-const CLOSE_MS = 280
+const CLOSE_MS = 220
 
 export default function SheetWrapper({ id, title, titleId, children, zIndex, customHead, onClose }: SheetWrapperProps) {
   const isOpen = useStore((s) => s.openSheets.includes(id))

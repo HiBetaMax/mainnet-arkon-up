@@ -83,7 +83,7 @@ export default function BottomNav() {
         setTimeout(() => {
           openPages.forEach((el) => el.classList.remove('open', 'closing'))
           closeAllSheets()
-        }, 280)
+        }, 220)
       } else {
         closeAllSheets()
       }

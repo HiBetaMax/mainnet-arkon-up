@@ -347,8 +347,8 @@ a{-webkit-tap-highlight-color:transparent}
 #content{flex:1;height:100%;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch}
 #content::-webkit-scrollbar{display:none}
 .page{display:none}
-.page.active{display:block;animation:pi .38s cubic-bezier(.25,.1,.25,1)}
-@keyframes pi{from{opacity:0;transform:translateX(30px)}to{opacity:1;transform:translateX(0)}}
+.page.active{display:block;animation:pi .3s cubic-bezier(.2,.9,.3,1)}
+@keyframes pi{from{opacity:0;transform:scale(.98)}to{opacity:1;transform:scale(1)}}
 
 /* ══════════════════════════════════════════
    BOTTOM NAV
@@ -741,15 +741,15 @@ select.finp{cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg xmlns
   flex-direction:column;
   overflow:hidden;
 }
-.subpage.open{display:flex;animation:sp-in .38s cubic-bezier(.25,.1,.25,1)}
-.subpage.open.closing{animation:sp-out .28s cubic-bezier(.25,.1,.25,1) forwards}
+.subpage.open{display:flex;animation:sp-in .3s cubic-bezier(.2,.9,.3,1)}
+.subpage.open.closing{animation:sp-out .22s cubic-bezier(.4,0,.6,1) forwards}
 @keyframes sp-in{
-  from{transform:translateX(100%);opacity:.6}
-  to{transform:translateX(0);opacity:1}
+  from{opacity:0;transform:scale(.97)}
+  to{opacity:1;transform:scale(1)}
 }
 @keyframes sp-out{
-  from{transform:translateX(0);opacity:1}
-  to{transform:translateX(100%);opacity:.6}
+  from{opacity:1;transform:scale(1)}
+  to{opacity:0;transform:scale(.97)}
 }
 
 .subpage-head{
@@ -934,7 +934,7 @@ select.finp{cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg xmlns
   z-index:9999;
   width:calc(100vw - 16px);
   max-width:414px;
-  background:rgba(20,24,34,.72);
+  background:rgba(20,24,34,.55);
   backdrop-filter:blur(32px) saturate(1.4);-webkit-backdrop-filter:blur(32px) saturate(1.4);
   border:1px solid rgba(255,255,255,.08);
   border-radius:16px;

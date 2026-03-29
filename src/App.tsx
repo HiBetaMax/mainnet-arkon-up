@@ -73,7 +73,7 @@ export default function App() {
           setTimeout(() => {
             openPages.forEach((el) => el.classList.remove('open', 'closing'))
             closeAllSheets()
-          }, 280)
+          }, 220)
         } else {
           closeAllSheets()
           document.querySelectorAll('.overlay.open').forEach((el) => el.classList.remove('open'))
