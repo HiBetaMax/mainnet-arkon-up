@@ -72,24 +72,34 @@ const NAV_ITEMS: NavItem[] = [
 export default function BottomNav() {
   const activePage = useStore((s) => s.activePage)
   const setActivePage = useStore((s) => s.setActivePage)
+  const closeAllSheets = useStore((s) => s.closeAllSheets)
 
   const handleNav = useCallback(
     (id: Page) => {
+      // Animate close any open sub-pages, then navigate
+      const openPages = document.querySelectorAll('.subpage.open')
+      if (openPages.length > 0) {
+        openPages.forEach((el) => el.classList.add('closing'))
+        setTimeout(() => {
+          openPages.forEach((el) => el.classList.remove('open', 'closing'))
+          closeAllSheets()
+        }, 220)
+      } else {
+        closeAllSheets()
+      }
+
       setActivePage(id)
 
       // Scroll content to top
       const content = document.getElementById('content')
       if (content) content.scrollTop = 0
 
-      // Legacy: trigger QR init or tx refresh
-      if (id === 'qr' && typeof (window as any).initMainQR === 'function') {
-        ;(window as any).initMainQR()
-      }
+      // Legacy: trigger tx refresh (QR is now handled by React useEffect in QRPage)
       if (id === 'transactions' && typeof (window as any).refreshTransactionsPage === 'function') {
         ;(window as any).refreshTransactionsPage()
       }
     },
-    [setActivePage]
+    [setActivePage, closeAllSheets]
   )
 
   return (

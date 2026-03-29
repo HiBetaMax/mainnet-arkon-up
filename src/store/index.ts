@@ -85,6 +85,16 @@ export interface InvContact {
   timestamp: number
 }
 
+export interface LastSendResult {
+  success: boolean
+  address: string
+  amountSats: number
+  network: SendNetwork
+  txid?: string
+  message: string
+  timestamp: number
+}
+
 export interface NotifPrefs {
   received: boolean
   sent: boolean
@@ -154,6 +164,7 @@ export interface AppState {
   currency: string
   theme: 'dark' | 'light'
   colorScheme: string
+  chartsEnabled: boolean
 
   // ── Transactions ──
   txRegistry: Record<string, TxDetail>
@@ -219,6 +230,9 @@ export interface AppState {
   // ── Saved Addresses ──
   savedAddresses: SavedAddress[]
 
+  // ── Last Send Result ──
+  lastSendResult: LastSendResult | null
+
   // ═══ Actions ═══
 
   // Boot
@@ -257,6 +271,7 @@ export interface AppState {
   setCurrency: (currency: string) => void
   setTheme: (theme: 'dark' | 'light') => void
   setColorScheme: (scheme: string) => void
+  setChartsEnabled: (enabled: boolean) => void
 
   // Transactions
   setTxRegistry: (registry: Record<string, TxDetail>) => void
@@ -329,6 +344,9 @@ export interface AppState {
   addSavedAddress: (address: SavedAddress) => void
   removeSavedAddress: (address: string) => void
   toggleFavorite: (address: string) => void
+
+  // Send Result
+  setLastSendResult: (result: LastSendResult | null) => void
 }
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -364,7 +382,7 @@ const useStore = create<AppState>((set, get) => ({
 
   // ── Prices ──
   btcUsd: null,
-  livePrices: { USD: 96420, EUR: 88640, CHF: 85910 },
+  livePrices: { USD: 0, EUR: 0, CHF: 0 },
   chartBasePrice: null,
   feeRates: null,
 
@@ -379,6 +397,7 @@ const useStore = create<AppState>((set, get) => ({
   currency: localStorage.getItem('arkon_currency') || 'USD',
   theme: (document.documentElement.getAttribute('data-theme') as 'dark' | 'light') || 'dark',
   colorScheme: localStorage.getItem('arkon_color_scheme') || 'blue',
+  chartsEnabled: localStorage.getItem('arkon_charts_enabled') !== 'false',
 
   // ── Transactions ──
   txRegistry: {},
@@ -448,6 +467,7 @@ const useStore = create<AppState>((set, get) => ({
 
   // ── Saved Addresses ──
   savedAddresses: [],
+  lastSendResult: null,
 
   // ═══ Actions ═══
 
@@ -503,6 +523,10 @@ const useStore = create<AppState>((set, get) => ({
   setTheme: (theme) => {
     document.documentElement.setAttribute('data-theme', theme)
     set({ theme })
+  },
+  setChartsEnabled: (enabled) => {
+    localStorage.setItem('arkon_charts_enabled', String(enabled))
+    set({ chartsEnabled: enabled })
   },
   setColorScheme: (scheme) => {
     localStorage.setItem('arkon_color_scheme', scheme)
@@ -628,6 +652,9 @@ const useStore = create<AppState>((set, get) => ({
         a.address === addr ? { ...a, favorite: !a.favorite } : a
       ),
     })),
+
+  // Send Result
+  setLastSendResult: (lastSendResult) => set({ lastSendResult }),
 }))
 
 export default useStore

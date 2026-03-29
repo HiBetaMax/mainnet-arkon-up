@@ -14,7 +14,8 @@ export default function ChartCard() {
   const chartRange = useStore((s) => s.chartRange)
 
   const price = livePrices[currency as keyof typeof livePrices] || btcUsd || 0
-  const priceStr = price > 0 ? `$${price.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : '$0'
+  const sym = currency === 'EUR' ? '\u20AC' : currency === 'CHF' ? 'CHF ' : '$'
+  const priceStr = price > 0 ? `${sym}${price.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : `${sym}0`
 
   const handleRange = (r: string) => {
     // Legacy compat: call ui.js chart range setter via DOM click

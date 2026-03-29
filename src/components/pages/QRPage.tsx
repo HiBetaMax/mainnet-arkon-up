@@ -1,8 +1,74 @@
+import { useState, useEffect, useCallback, useRef } from 'react'
 import useStore from '../../store'
+
+type AddrType = 'ark' | 'lightning' | 'onchain'
 
 export default function QRPage() {
   const qrTab = useStore((s) => s.qrTab)
   const setQrTab = useStore((s) => s.setQrTab)
+  const activePage = useStore((s) => s.activePage)
+  const arkAddress = useStore((s) => s.arkAddress)
+  const boardingAddress = useStore((s) => s.boardingAddress)
+
+  const [addrType, setAddrType] = useState<AddrType>('ark')
+  const qrRef = useRef<any>(null)
+
+  // Resolve which address to show
+  const currentAddr = addrType === 'onchain'
+    ? (boardingAddress && !boardingAddress.startsWith('Connecting') ? boardingAddress : '')
+    : (arkAddress && !arkAddress.startsWith('Connecting') ? arkAddress : '')
+
+  // Generate/update QR when page is active and address changes
+  useEffect(() => {
+    if (activePage !== 'qr' || addrType === 'lightning') return
+    if (!currentAddr) return
+    const el = document.getElementById('qr-main-canvas')
+    if (!el) return
+
+    const QRCode = (window as any).QRCode
+    if (!QRCode) return
+
+    // Always destroy old instance and clear DOM to prevent doubling
+    qrRef.current = null
+    el.innerHTML = ''
+    qrRef.current = new QRCode(el, {
+      text: currentAddr, width: 186, height: 186,
+      colorDark: '#000000', colorLight: '#ffffff',
+      correctLevel: QRCode.CorrectLevel?.M,
+    })
+
+    // Update address text
+    const addrEl = document.getElementById('qr-addr-val')
+    if (addrEl) addrEl.textContent = currentAddr
+  }, [activePage, addrType, currentAddr])
+
+  const handleAddrType = useCallback((type: AddrType) => {
+    setAddrType(type)
+
+    const staticP = document.getElementById('qr-static-panel')
+    const lnP = document.getElementById('qr-lightning-panel')
+
+    if (type === 'lightning') {
+      if (staticP) staticP.style.display = 'none'
+      if (lnP) lnP.style.display = 'block'
+      // Reset lightning form
+      const resultEl = document.getElementById('qr-ln-result')
+      const formEl = document.getElementById('qr-ln-form-wrap')
+      if (resultEl) resultEl.style.display = 'none'
+      if (formEl) formEl.style.display = 'block'
+      const amtEl = document.getElementById('qr-ln-amt') as HTMLInputElement
+      if (amtEl) amtEl.value = ''
+      const memoEl = document.getElementById('qr-ln-memo') as HTMLInputElement
+      if (memoEl) memoEl.value = ''
+      const fiatEl = document.getElementById('qr-ln-fiat')
+      if (fiatEl) fiatEl.textContent = 'Enter amount to see fiat equivalent'
+      const btn = document.getElementById('qr-ln-gen-btn') as HTMLButtonElement
+      if (btn) { btn.disabled = true; btn.style.opacity = '.5' }
+    } else {
+      if (staticP) staticP.style.display = 'block'
+      if (lnP) lnP.style.display = 'none'
+    }
+  }, [])
 
   const handleTabChange = (tab: 'mine' | 'scan') => {
     setQrTab(tab)
@@ -15,8 +81,8 @@ export default function QRPage() {
   return (
     <div style={{ padding: '0 20px 28px' }}>
       <div className="pg-head">
-        <div className="pg-title">QR Code</div>
-        <div className="pg-sub">Scan or share your address</div>
+        <h2>QR Code</h2>
+        <p>Scan or share your address</p>
       </div>
 
       {/* My QR / Scan QR tabs */}
@@ -40,14 +106,11 @@ export default function QRPage() {
       {/* My QR Panel */}
       <div id="qr-mine-panel" style={{ display: qrTab === 'mine' ? 'block' : 'none' }}>
         <div className="qr-type-row" style={{ marginBottom: 16 }}>
-          {['ark', 'lightning', 'onchain'].map((t, i) => (
+          {(['ark', 'lightning', 'onchain'] as AddrType[]).map((t) => (
             <div
               key={t}
-              className={`qtt${i === 0 ? ' active' : ''}`}
-              onClick={(e) =>
-                typeof (window as any).setAddrType === 'function' &&
-                (window as any).setAddrType(e.currentTarget, t)
-              }
+              className={`qtt${addrType === t ? ' active' : ''}`}
+              onClick={() => handleAddrType(t)}
             >
               {t === 'onchain' ? 'On-chain' : t.charAt(0).toUpperCase() + t.slice(1)}
             </div>
@@ -56,9 +119,9 @@ export default function QRPage() {
 
         {/* Static panel: Ark / On-chain */}
         <div id="qr-static-panel">
-          <div className="qr-ring">
-            <div className="qr-ring-inner">
-              <div className="qr-canvas-wrap" id="qr-main-canvas" />
+          <div className="sht-qr">
+            <div className="sht-qr-inner">
+              <div id="qr-main-canvas" />
             </div>
           </div>
           <div className="addr-blk">
@@ -168,11 +231,9 @@ export default function QRPage() {
           </div>
           <div id="qr-ln-result" style={{ display: 'none' }}>
             <div style={{ background: 'var(--bg3)', border: '1px solid var(--bdr2)', borderRadius: 'var(--r-md)', padding: 16, marginBottom: 14 }}>
-              <div className="qr-ring" style={{ marginBottom: 10 }}>
-                <div className="qr-ring-inner">
-                  <div className="qr-canvas-wrap">
-                    <div id="qr-ln-canvas" />
-                  </div>
+              <div className="sht-qr" style={{ marginBottom: 10 }}>
+                <div className="sht-qr-inner">
+                  <div id="qr-ln-canvas" />
                 </div>
               </div>
               <div style={{ textAlign: 'center', marginBottom: 4 }}>
@@ -220,8 +281,8 @@ export default function QRPage() {
 
       {/* Scan Panel */}
       <div id="qr-scan-panel" style={{ display: qrTab === 'scan' ? 'block' : 'none' }}>
-        <div className="qr-ring">
-          <div className="qr-ring-inner">
+        <div className="sht-qr">
+          <div className="sht-qr-inner">
             <div className="qr-scan-box">
               <div className="scan-line" />
               <div className="sc-corners">

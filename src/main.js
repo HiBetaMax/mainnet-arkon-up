@@ -328,6 +328,13 @@ async function ensureUnlockedIfNeeded() {
 
 // ─── Boot ──────────────────────────────────────────────────────────────────
 async function boot() {
+  // If React/wallet.ts is managing the boot, skip main.js boot entirely.
+  // The bridge sets window.__REACT_BOOT_ACTIVE when initWindowBridge() runs.
+  if (window.__REACT_BOOT_ACTIVE) {
+    console.log('[main.js] Skipping boot — React wallet.ts is managing boot')
+    hideLoading()
+    return
+  }
   if (_bootInProgress) return
   _bootInProgress = true
   try {
@@ -1591,9 +1598,14 @@ function startPolling() {
 }
 
 // ─── Start ─────────────────────────────────────────────────────────────────
-// boot() is NOT auto-called. splashDone() calls window._bootApp() after onboarding.
-// This prevents init() from auto-generating a key before the user sees Create/Restore.
+// Boot is now managed by wallet.ts bootWallet() via the React bridge.
+// main.js boot() is retained only as a fallback but will not run if bridge.ts
+// has already overridden _bootApp (which it does when App.tsx mounts).
 window._bootApp = function() {
+  // If bridge.ts has already set up the React-managed boot, this version
+  // of _bootApp will have been replaced. This code only runs as a fallback
+  // if the bridge hasn't loaded yet (shouldn't happen in normal flow).
+  console.log('[main.js] _bootApp fallback — boot via main.js')
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', boot)
   } else {
