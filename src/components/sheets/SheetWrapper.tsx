@@ -9,9 +9,10 @@ interface SheetWrapperProps {
   maxHeight?: string
   zIndex?: number
   customHead?: ReactNode
+  onClose?: () => void
 }
 
-export default function SheetWrapper({ id, title, titleId, children, zIndex, customHead }: SheetWrapperProps) {
+export default function SheetWrapper({ id, title, titleId, children, zIndex, customHead, onClose }: SheetWrapperProps) {
   const isOpen = useStore((s) => s.openSheets.includes(id))
   const closeSheet = useStore((s) => s.closeSheet)
   const pageRef = useRef<HTMLDivElement>(null)
@@ -47,6 +48,7 @@ export default function SheetWrapper({ id, title, titleId, children, zIndex, cus
   const handleBack = () => {
     closeSheet(id)
     pageRef.current?.classList.remove('open')
+    onClose?.()
   }
 
   return (

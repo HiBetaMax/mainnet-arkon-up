@@ -356,7 +356,7 @@ a{-webkit-tap-highlight-color:transparent}
   padding:6px 6px max(env(safe-area-inset-bottom,8px),8px);
   background:var(--surf);border-top:1px solid var(--bdr);
   display:flex;align-items:stretch;
-  z-index:10;
+  position:relative;z-index:400;
 }
 .ni{
   flex:1;height:46px;

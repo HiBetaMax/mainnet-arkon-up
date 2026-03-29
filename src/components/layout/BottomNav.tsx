@@ -72,9 +72,14 @@ const NAV_ITEMS: NavItem[] = [
 export default function BottomNav() {
   const activePage = useStore((s) => s.activePage)
   const setActivePage = useStore((s) => s.setActivePage)
+  const closeAllSheets = useStore((s) => s.closeAllSheets)
 
   const handleNav = useCallback(
     (id: Page) => {
+      // Close any open sub-pages when switching tabs
+      closeAllSheets()
+      document.querySelectorAll('.subpage.open').forEach((el) => el.classList.remove('open'))
+
       setActivePage(id)
 
       // Scroll content to top
@@ -86,7 +91,7 @@ export default function BottomNav() {
         ;(window as any).refreshTransactionsPage()
       }
     },
-    [setActivePage]
+    [setActivePage, closeAllSheets]
   )
 
   return (

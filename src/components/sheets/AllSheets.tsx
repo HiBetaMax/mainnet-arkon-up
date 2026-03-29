@@ -390,20 +390,7 @@ function RenameSheet() {
 /* ─── Chart Expand ─── */
 function ChartExpandSheet() {
   return (
-    <SheetWrapper id="chartexp" maxHeight="85vh" title={false}
-      customHead={
-        <div className="sheet-head">
-          <div>
-            <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.06em', color: 'var(--t3)', marginBottom: 2 }}>BTC / USD</div>
-            <span className="sheet-title" id="exp-chart-price" style={{ fontSize: 22 }}>$—</span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <span id="exp-chart-pct" style={{ fontSize: 13, fontWeight: 700, color: 'var(--grn)', background: 'var(--grns)', padding: '4px 10px', borderRadius: 'var(--r-pill)' }}>—</span>
-            <button className="sheet-close" onClick={() => typeof (window as any).closeSheet === 'function' && (window as any).closeSheet('chartexp')}>✕</button>
-          </div>
-        </div>
-      }
-    >
+    <SheetWrapper id="chartexp" title="Chart">
       <div style={{ height: 200, margin: '0 -4px 8px', position: 'relative' }}>
         <canvas id="exp-chart-canvas" style={{ width: '100%', height: '100%', display: 'block', cursor: 'crosshair', touchAction: 'none' }} />
         <div id="exp-chart-tooltip" style={{ display: 'none', position: 'absolute', top: 6, left: '50%', transform: 'translateX(-50%)', background: 'rgba(10,8,30,0.92)', border: '1px solid rgba(107,82,245,0.4)', borderRadius: 8, padding: '5px 10px', pointerEvents: 'none', whiteSpace: 'nowrap', zIndex: 10 }}>
@@ -439,23 +426,7 @@ function ChartExpandSheet() {
 /* ─── Invoice ─── */
 function InvoiceSheet() {
   return (
-    <SheetWrapper id="invoice" maxHeight="96vh" title={false}
-      customHead={
-        <div className="sheet-head">
-          <div>
-            <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.07em', color: 'var(--t3)', marginBottom: 2 }}>Bitcoin Invoice</div>
-            <span className="sheet-title" id="inv-sheet-title">New Invoice</span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <button onClick={() => typeof (window as any).openSheet === 'function' && (window as any).openSheet('invhistory')} style={{ background: 'var(--surf)', border: '1.5px solid var(--bdr)', borderRadius: 10, padding: '6px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, color: 'var(--t2)', fontSize: 11, fontWeight: 600 }}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 14, height: 14 }}><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
-              History
-            </button>
-            <button className="sheet-close" onClick={() => typeof (window as any).closeSheet === 'function' && (window as any).closeSheet('invoice')}>✕</button>
-          </div>
-        </div>
-      }
-    >
+    <SheetWrapper id="invoice" title="Bitcoin Invoice">
       {/* Step indicator */}
       <div className="inv-steps" id="inv-steps">
         {['From', 'To', 'Items', 'Payment', 'Preview'].map((label, i) => (
@@ -696,13 +667,13 @@ function BatchSendSheet() {
 /* ─── Send Confirm ─── */
 function SendConfirmSheet() {
   return (
-    <SheetWrapper id="sendconfirm" title={false}>
-      <div style={{ textAlign: 'center', padding: '20px 20px 24px', borderBottom: '1px solid var(--bdr)' }}>
+    <SheetWrapper id="sendconfirm" title="Confirm Send">
+      <div style={{ textAlign: 'center', padding: '20px 0 24px', borderBottom: '1px solid var(--bdr)' }}>
         <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: '.1em', textTransform: 'uppercase', color: 'var(--t3)', marginBottom: 10 }}>You are sending</div>
         <div id="sc-amount-display" style={{ fontSize: 44, fontWeight: 900, color: 'var(--t1)', letterSpacing: '-.04em', fontFamily: 'var(--f)', lineHeight: 1 }}>0 SATS</div>
         <div id="sc-fiat-display" style={{ fontSize: 16, color: 'var(--t2)', marginTop: 6, fontWeight: 500 }}>≈ $0.00</div>
       </div>
-      <div style={{ padding: '0 20px' }}>
+      <div>
         <div className="tdrow" style={{ padding: '16px 0' }}>
           <span className="tdlbl" style={{ fontSize: 13 }}>To</span>
           <span className="tdval mono" id="sc-addr-display" style={{ fontSize: 11.5, lineHeight: 1.5, color: 'var(--t2)' }}>—</span>
@@ -727,7 +698,7 @@ function SendConfirmSheet() {
       <input type="hidden" id="sc-addr-full" />
       <input type="hidden" id="sc-amount-raw" />
       <input type="hidden" id="sc-network-type" defaultValue="ark" />
-      <div style={{ padding: '0 20px 28px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         <button id="sc-confirm-btn" onClick={() => typeof (window as any).confirmSend === 'function' && (window as any).confirmSend()}
           style={{ height: 54, borderRadius: 16, background: 'var(--acc2)', color: '#fff', fontSize: 15, fontWeight: 700, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, boxShadow: 'var(--shb)', letterSpacing: '.01em', transition: 'opacity .15s' }}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ width: 16, height: 16, flexShrink: 0 }}><polyline points="20 6 9 17 4 12" /></svg>
@@ -742,38 +713,172 @@ function SendConfirmSheet() {
   )
 }
 
-/* ─── Send Result ─── */
+/* ─── Send Result / Transfer Receipt ─── */
 function SendResultSheet() {
+  const { lastSendResult, closeSheet, currency, livePrices, arkAddress, showToast } = useStore()
+  const result = lastSendResult
+
+  const price = (livePrices as Record<string, number>)[currency] || livePrices.USD || 0
+  const currSym = currency === 'EUR' ? '\u20AC' : currency === 'CHF' ? 'CHF ' : '$'
+  const fiatAmt = result && price > 0 ? ((result.amountSats / 1e8) * price).toFixed(2) : '0.00'
+
+  const networkLabel = result?.network === 'lightning' ? 'Lightning' : result?.network === 'bitcoin' ? 'On-chain' : 'Ark'
+  const dateStr = result ? new Date(result.timestamp).toLocaleString() : ''
+
+  const truncAddr = (addr: string) => addr.length > 20 ? addr.slice(0, 12) + '\u2026' + addr.slice(-8) : addr
+
+  const copyField = (text: string, label: string) => {
+    navigator.clipboard.writeText(text).then(
+      () => showToast(`${label} copied`),
+      () => showToast('Copy failed')
+    )
+  }
+
+  const handleDone = () => closeSheet('sendresult')
+
+  const success = result?.success ?? true
+
   return (
-    <SheetWrapper id="sendresult" title={false}>
-      <div style={{ textAlign: 'center', padding: '32px 24px 28px' }}>
-        <div id="sres-icon" style={{ width: 72, height: 72, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', background: 'var(--grns)' }}>
-          <svg id="sres-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ width: 34, height: 34, color: 'var(--grn)' }}><polyline points="20 6 9 17 4 12" /></svg>
+    <SheetWrapper id="sendresult" title="Transfer Receipt">
+      {/* Status header */}
+      <div style={{ textAlign: 'center', padding: '24px 0 20px' }}>
+        <div style={{
+          width: 64, height: 64, borderRadius: '50%',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          margin: '0 auto 16px',
+          background: success ? 'rgba(34,197,94,.12)' : 'rgba(239,68,68,.12)',
+        }}>
+          {success ? (
+            <svg viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2.5" style={{ width: 32, height: 32 }}>
+              <circle cx="12" cy="12" r="10" />
+              <polyline points="16 9 10.5 15 8 12.5" />
+            </svg>
+          ) : (
+            <svg viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2.5" style={{ width: 32, height: 32 }}>
+              <circle cx="12" cy="12" r="10" />
+              <line x1="15" y1="9" x2="9" y2="15" />
+              <line x1="9" y1="9" x2="15" y2="15" />
+            </svg>
+          )}
         </div>
-        <div id="sres-title" style={{ fontSize: 22, fontWeight: 900, color: 'var(--t1)', letterSpacing: '-.03em', marginBottom: 6, fontFamily: 'var(--f-logo)' }}>Payment Sent</div>
-        <div id="sres-amount" style={{ fontSize: 16, fontWeight: 700, color: 'var(--t2)', marginBottom: 4 }}>0 SATS</div>
-        <div id="sres-sub" style={{ fontSize: 13, color: 'var(--t3)', marginBottom: 20 }}>Transaction broadcast successfully</div>
-        {/* Save to Favorites */}
-        <div id="sres-fav-section" style={{ display: 'none', marginBottom: 20, padding: 16, background: 'var(--surf)', border: '1.5px solid var(--bdr)', borderRadius: 14, textAlign: 'left' }}>
-          <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', color: 'var(--t3)', marginBottom: 10 }}>Save Address</div>
-          <input className="finp" id="sres-fav-name" type="text" placeholder="Name (e.g. Alice)" style={{ marginBottom: 10, fontSize: 13 }} />
-          <div id="sres-fav-addr" style={{ fontSize: 11, color: 'var(--t3)', wordBreak: 'break-all', marginBottom: 12, fontFamily: 'var(--f-mono)', lineHeight: 1.5 }} />
-          <button id="sres-fav-btn" onClick={() => typeof (window as any).saveFromResult === 'function' && (window as any).saveFromResult()} style={{ width: '100%', height: 40, borderRadius: 12, background: 'var(--accs)', border: '1px solid var(--cb)', color: 'var(--acc2)', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 14, height: 14 }}><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
-            Save to Favorites
-          </button>
+        <div style={{ fontSize: 20, fontWeight: 900, color: 'var(--t1)', letterSpacing: '-.02em', marginBottom: 4 }}>
+          {success ? 'Payment Sent' : 'Payment Failed'}
         </div>
-        <button className="btnp" onClick={() => typeof (window as any).closeSheet === 'function' && (window as any).closeSheet('sendresult')} style={{ maxWidth: 280, margin: '0 auto' }}>Done</button>
+        <div style={{ fontSize: 24, fontWeight: 800, color: success ? 'var(--grn)' : 'var(--red)', marginBottom: 2 }}>
+          {result ? result.amountSats.toLocaleString() : '0'} sats
+        </div>
+        <div style={{ fontSize: 13, color: 'var(--t3)' }}>
+          {currSym}{fiatAmt} {currency}
+        </div>
       </div>
+
+      {/* Receipt details card */}
+      <div style={{
+        background: 'var(--surf)', border: '1px solid var(--bdr)', borderRadius: 14,
+        padding: '4px 0', marginBottom: 16,
+      }}>
+        {/* Status */}
+        <ReceiptRow label="Status" value={success ? 'Completed' : 'Failed'} valueColor={success ? 'var(--grn)' : 'var(--red)'} />
+        {/* Network */}
+        <ReceiptRow label="Network" value={networkLabel} />
+        {/* Receiving address */}
+        {result?.address && (
+          <ReceiptRow
+            label="To"
+            value={truncAddr(result.address)}
+            mono
+            onCopy={() => copyField(result.address, 'Address')}
+          />
+        )}
+        {/* Sending address */}
+        {arkAddress && (
+          <ReceiptRow
+            label="From"
+            value={truncAddr(arkAddress)}
+            mono
+            onCopy={() => copyField(arkAddress, 'Address')}
+          />
+        )}
+        {/* Transaction hash */}
+        {result?.txid && (
+          <ReceiptRow
+            label="Transaction ID"
+            value={truncAddr(result.txid)}
+            mono
+            onCopy={() => copyField(result.txid!, 'Transaction ID')}
+          />
+        )}
+        {/* Date */}
+        <ReceiptRow label="Date" value={dateStr} last />
+      </div>
+
+      {/* Message */}
+      {result?.message && (
+        <div style={{ fontSize: 12, color: 'var(--t3)', textAlign: 'center', marginBottom: 16 }}>
+          {result.message}
+        </div>
+      )}
+
+      {/* Save to contacts */}
+      <div id="sres-fav-section" style={{ display: 'none', marginBottom: 16, padding: 16, background: 'var(--surf)', border: '1px solid var(--bdr)', borderRadius: 14 }}>
+        <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', color: 'var(--t3)', marginBottom: 10 }}>Save Address</div>
+        <input className="finp" id="sres-fav-name" type="text" placeholder="Name (e.g. Alice)" style={{ marginBottom: 10, fontSize: 13 }} />
+        <div id="sres-fav-addr" style={{ fontSize: 11, color: 'var(--t3)', wordBreak: 'break-all', marginBottom: 12, fontFamily: 'var(--f-mono)', lineHeight: 1.5 }} />
+        <button id="sres-fav-btn" onClick={() => typeof (window as any).saveFromResult === 'function' && (window as any).saveFromResult()} style={{ width: '100%', height: 40, borderRadius: 12, background: 'var(--accs)', border: '1px solid var(--cb)', color: 'var(--acc2)', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 14, height: 14 }}><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
+          Save to Favorites
+        </button>
+      </div>
+
+      {/* Actions */}
+      <button className="btnp" onClick={handleDone} style={{ marginBottom: 8 }}>Done</button>
+      {result?.txid && (
+        <button className="btns" onClick={() => copyField(
+          result.network === 'lightning' ? result.txid! : `https://mempool.space/tx/${result.txid}`,
+          'Link'
+        )}>
+          {result.network === 'lightning' ? 'Copy Transaction ID' : 'Copy Explorer Link'}
+        </button>
+      )}
     </SheetWrapper>
+  )
+}
+
+/* ─── Receipt Row helper ─── */
+function ReceiptRow({ label, value, valueColor, mono, onCopy, last }: {
+  label: string; value: string; valueColor?: string; mono?: boolean; onCopy?: () => void; last?: boolean
+}) {
+  return (
+    <div style={{
+      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+      padding: '12px 16px',
+      borderBottom: last ? 'none' : '1px solid var(--bdr)',
+    }}>
+      <span style={{ fontSize: 12, color: 'var(--t3)', fontWeight: 500 }}>{label}</span>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        <span style={{
+          fontSize: 12, fontWeight: 600,
+          color: valueColor || 'var(--t1)',
+          fontFamily: mono ? 'var(--f-mono)' : undefined,
+        }}>{value}</span>
+        {onCopy && (
+          <button onClick={onCopy} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, color: 'var(--t3)' }} title="Copy">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 13, height: 13 }}>
+              <rect x="9" y="9" width="13" height="13" rx="2" />
+              <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
+            </svg>
+          </button>
+        )}
+      </div>
+    </div>
   )
 }
 
 /* ─── Settle Progress ─── */
 function SettleProgressSheet() {
   return (
-    <SheetWrapper id="settle-progress" title={false}>
-      <div style={{ textAlign: 'center', padding: '32px 24px 36px' }}>
+    <SheetWrapper id="settle-progress" title="Processing">
+      <div style={{ textAlign: 'center', padding: '32px 0 36px' }}>
         <div style={{ width: 68, height: 68, borderRadius: '50%', background: 'var(--accs)', border: '1px solid var(--cb)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 22px' }}>
           <svg viewBox="0 0 24 24" fill="none" stroke="var(--acc2)" strokeWidth="2" style={{ width: 32, height: 32, animation: 'spin 1s linear infinite' }}>
             <path d="M21 12a9 9 0 11-6.219-8.56" />
@@ -830,8 +935,8 @@ function ShareSheet() {
 /* ─── Settle Result ─── */
 function SettleResultSheet() {
   return (
-    <SheetWrapper id="settleresult" title={false}>
-      <div style={{ textAlign: 'center', padding: '32px 24px 28px' }}>
+    <SheetWrapper id="settleresult" title="Result">
+      <div style={{ textAlign: 'center', padding: '32px 0 28px' }}>
         <div id="settle-result-icon" style={{ width: 72, height: 72, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', background: 'var(--grns)' }}>
           <svg id="settle-result-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ width: 34, height: 34, color: 'var(--grn)' }}><polyline points="20 6 9 17 4 12" /></svg>
         </div>

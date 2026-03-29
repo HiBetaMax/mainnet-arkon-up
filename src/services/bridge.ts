@@ -273,9 +273,14 @@ export function initWindowBridge(): void {
         if (titleEl) titleEl.textContent = 'Payment Sent'
         if (amtEl) amtEl.textContent = (amount || 0).toLocaleString() + ' SATS'
         if (sub) sub.textContent = result.message
-        useStore.getState().openSheet('sendresult')
-        const sresEl = document.getElementById('sheet-sendresult')
-        if (sresEl) sresEl.classList.add('open')
+        // Use window.openSheet so ui.js populates fav section
+        if (typeof w.openSheet === 'function') {
+          w.openSheet('sendresult')
+        } else {
+          useStore.getState().openSheet('sendresult')
+          const sresEl = document.getElementById('sheet-sendresult')
+          if (sresEl) sresEl.classList.add('open')
+        }
       } else {
         useStore.getState().showToast(result.message || 'Send failed')
       }
@@ -296,9 +301,13 @@ export function initWindowBridge(): void {
       if (titleEl) titleEl.textContent = 'Payment Failed'
       if (amtEl) amtEl.textContent = (amount || 0).toLocaleString() + ' SATS'
       if (sub) sub.textContent = msg
-      useStore.getState().openSheet('sendresult')
-      const sresEl = document.getElementById('sheet-sendresult')
-      if (sresEl) sresEl.classList.add('open')
+      if (typeof w.openSheet === 'function') {
+        w.openSheet('sendresult')
+      } else {
+        useStore.getState().openSheet('sendresult')
+        const sresEl = document.getElementById('sheet-sendresult')
+        if (sresEl) sresEl.classList.add('open')
+      }
     } finally {
       if (btn) {
         btn.disabled = false

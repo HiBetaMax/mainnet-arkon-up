@@ -61,6 +61,8 @@ export default function SendSheet() {
   const sendInProgress = useStore((s) => s.sendInProgress)
   const sendFeeRate = useStore((s) => s.sendFeeRate)
   const closeSheet = useStore((s) => s.closeSheet)
+  const openSheet = useStore((s) => s.openSheet)
+  const setLastSendResult = useStore((s) => s.setLastSendResult)
   const setSendNetwork = useStore((s) => s.setSendNetwork)
   const setSendAddress = useStore((s) => s.setSendAddress)
   const setSendAmountSats = useStore((s) => s.setSendAmountSats)
@@ -149,14 +151,16 @@ export default function SendSheet() {
     setSendAmountSats(sats)
   }, [price, setSendAmountSats, setSendAmountFiat])
 
+  const availableSats = sendNetwork === 'ark' ? (wallet.offchain ?? wallet.sats) : wallet.sats
+
   const handleMax = useCallback(() => {
-    const maxSats = wallet.sats
+    const maxSats = sendNetwork === 'ark' ? (wallet.offchain ?? wallet.sats) : wallet.sats
     setSatsInputVal(maxSats.toString())
     setSendAmountSats(maxSats)
     const fiatVal = satsToFiat(maxSats, price)
     setFiatInputVal(fiatVal)
     setSendAmountFiat(fiatVal)
-  }, [wallet.sats, price, setSendAmountSats, setSendAmountFiat])
+  }, [wallet.sats, wallet.offchain, sendNetwork, price, setSendAmountSats, setSendAmountFiat])
 
   // ─── Fee helpers ──────────────────────────────────────────────────
 
@@ -215,18 +219,36 @@ export default function SendSheet() {
         sendNetwork,
         sendNetwork === 'bitcoin' ? currentFeeRate : undefined
       )
+      setLastSendResult({
+        success: result.success,
+        address: addr,
+        amountSats: sendAmountSats,
+        network: sendNetwork,
+        txid: result.txid,
+        message: result.message,
+        timestamp: Date.now(),
+      })
       if (result.success) {
-        showToast(result.message)
         resetSendForm()
         setSatsInputVal('')
         setFiatInputVal('')
         closeSheet('send')
+        openSheet('sendresult')
       } else {
         showToast(result.message || 'Send failed')
       }
     } catch (err: any) {
       console.error('[SendSheet] sendPayment error:', err)
-      showToast(err?.message || 'Send failed')
+      setLastSendResult({
+        success: false,
+        address: addr,
+        amountSats: sendAmountSats,
+        network: sendNetwork,
+        message: err?.message || 'Send failed',
+        timestamp: Date.now(),
+      })
+      closeSheet('send')
+      openSheet('sendresult')
     }
   }, [
     sendInProgress, sendAddress, sendAmountSats, wallet.sats,
@@ -263,9 +285,19 @@ export default function SendSheet() {
   // ─── Render: Amount fields ────────────────────────────────────────
 
   const renderAmountFields = () => {
-    const fiatField = (
-      <div className="fld">
-        <label className="flbl">Amount ({currency})</label>
+    const maxBtn = (
+      <button
+        onClick={handleMax}
+        style={{ fontSize: 10, fontWeight: 700, color: 'var(--acc2)', cursor: 'pointer', padding: '2px 8px', borderRadius: 'var(--r-pill)', background: 'var(--accs)', border: '1px solid rgba(37,99,235,.2)', marginLeft: 'auto' }}
+      >MAX</button>
+    )
+
+    const fiatField = (compact?: boolean) => (
+      <div className="fld" style={compact ? { flex: 1, margin: 0 } : undefined}>
+        <div style={{ display: 'flex', alignItems: 'center', marginBottom: 6 }}>
+          <label className="flbl" style={{ margin: 0 }}>{compact ? currency : `Amount (${currency})`}</label>
+          {!compact && maxBtn}
+        </div>
         <div className="fwrap">
           <input
             className="finp"
@@ -276,14 +308,16 @@ export default function SendSheet() {
             value={fiatInputVal}
             onChange={(e) => updateFromFiat(e.target.value)}
           />
-          <button className="fmax" onClick={handleMax}>MAX</button>
         </div>
       </div>
     )
 
-    const satsField = (
-      <div className="fld">
-        <label className="flbl">Amount (sats)</label>
+    const satsField = (compact?: boolean) => (
+      <div className="fld" style={compact ? { flex: 1, margin: 0 } : undefined}>
+        <div style={{ display: 'flex', alignItems: 'center', marginBottom: 6 }}>
+          <label className="flbl" style={{ margin: 0 }}>{compact ? 'SATS' : 'Amount (sats)'}</label>
+          {!compact && maxBtn}
+        </div>
         <div className="fwrap">
           <input
             className="finp"
@@ -294,7 +328,6 @@ export default function SendSheet() {
             value={satsInputVal}
             onChange={(e) => updateFromSats(e.target.value)}
           />
-          <button className="fmax" onClick={handleMax}>MAX</button>
         </div>
       </div>
     )
@@ -303,19 +336,23 @@ export default function SendSheet() {
       case 'fiat':
         return (
           <>
-            {fiatField}
+            {fiatField()}
             <input type="hidden" id="s-amt" value={sendAmountSats} />
           </>
         )
       case 'sats':
-        return satsField
+        return satsField()
       case 'both':
       default:
         return (
-          <>
-            {fiatField}
-            {satsField}
-          </>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
+            {fiatField(true)}
+            {satsField(true)}
+            <button
+              onClick={handleMax}
+              style={{ fontSize: 10, fontWeight: 700, color: 'var(--acc2)', cursor: 'pointer', padding: '10px 10px', borderRadius: 'var(--r-md)', background: 'var(--accs)', border: '1px solid rgba(37,99,235,.2)', whiteSpace: 'nowrap', marginBottom: 0 }}
+            >MAX</button>
+          </div>
         )
     }
   }
@@ -418,12 +455,12 @@ export default function SendSheet() {
 
   // ─── Render ───────────────────────────────────────────────────────
 
-  const availableFiat = satsToFiat(wallet.sats, price)
+  const availableFiat = satsToFiat(availableSats, price)
 
   return (
-    <SheetWrapper id="send" title="Send Bitcoin">
+    <SheetWrapper id="send" title="Send Bitcoin" onClose={handleCancel}>
       {/* Network tab row */}
-      <div className="qr-type-row" style={{ marginBottom: 14 }} id="snd-net-row">
+      <div className="qr-type-row" style={{ marginBottom: 16 }} id="snd-net-row">
         <div
           className={`qtt${activeTab === 'ark' ? ' active' : ''}`}
           id="snd-net-btn-ark"
@@ -570,22 +607,14 @@ export default function SendSheet() {
           </div>
         </div>
 
-        {/* Available balance */}
-        <div
-          className="fsm"
-          style={{ marginBottom: 8 }}
-        >
-          <div className="fl">
-            <span className="fl-l">Available</span>
-            <span className="fl-v">
-              {formatSats(wallet.sats)} SATS ({currSymbol}{availableFiat})
-            </span>
-          </div>
-        </div>
-
         {/* Amount fields */}
         <div id="send-amt-wrap">
           {renderAmountFields()}
+        </div>
+
+        {/* Available balance (subtext) */}
+        <div style={{ fontSize: 11, color: 'var(--t3)', marginTop: 4, marginBottom: 8 }}>
+          Available: {formatSats(availableSats)} sats ({currSymbol}{availableFiat})
         </div>
 
         {/* Fee sections */}

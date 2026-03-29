@@ -86,8 +86,10 @@ export default function App() {
       <SplashScreen />
       <div id="app" style={{ opacity: showApp ? 1 : 0 }}>
         <TopBar />
-        <Content />
-        <AllSheets />
+        <div id="app-body">
+          <Content />
+          <AllSheets />
+        </div>
         <BottomNav />
       </div>
       <UnlockGate />

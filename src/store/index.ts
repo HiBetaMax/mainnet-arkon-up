@@ -85,6 +85,16 @@ export interface InvContact {
   timestamp: number
 }
 
+export interface LastSendResult {
+  success: boolean
+  address: string
+  amountSats: number
+  network: SendNetwork
+  txid?: string
+  message: string
+  timestamp: number
+}
+
 export interface NotifPrefs {
   received: boolean
   sent: boolean
@@ -220,6 +230,9 @@ export interface AppState {
   // ── Saved Addresses ──
   savedAddresses: SavedAddress[]
 
+  // ── Last Send Result ──
+  lastSendResult: LastSendResult | null
+
   // ═══ Actions ═══
 
   // Boot
@@ -331,6 +344,9 @@ export interface AppState {
   addSavedAddress: (address: SavedAddress) => void
   removeSavedAddress: (address: string) => void
   toggleFavorite: (address: string) => void
+
+  // Send Result
+  setLastSendResult: (result: LastSendResult | null) => void
 }
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -451,6 +467,7 @@ const useStore = create<AppState>((set, get) => ({
 
   // ── Saved Addresses ──
   savedAddresses: [],
+  lastSendResult: null,
 
   // ═══ Actions ═══
 
@@ -635,6 +652,9 @@ const useStore = create<AppState>((set, get) => ({
         a.address === addr ? { ...a, favorite: !a.favorite } : a
       ),
     })),
+
+  // Send Result
+  setLastSendResult: (lastSendResult) => set({ lastSendResult }),
 }))
 
 export default useStore

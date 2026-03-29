@@ -131,11 +131,11 @@ function AmountFields({ idPrefix, satValue, onSatChange, fiatValue, onFiatChange
     )
   }
 
-  /* both */
+  /* both — side by side */
   return (
-    <>
-      <div className="fld">
-        <label className="flbl">Amount ({currency})</label>
+    <div style={{ display: 'flex', gap: 8 }}>
+      <div className="fld" style={{ flex: 1, margin: 0 }}>
+        <label className="flbl">{currency}</label>
         <div className="fwrap">
           <input
             className="finp"
@@ -148,8 +148,8 @@ function AmountFields({ idPrefix, satValue, onSatChange, fiatValue, onFiatChange
           />
         </div>
       </div>
-      <div className="fld">
-        <label className="flbl">Amount (SATS)</label>
+      <div className="fld" style={{ flex: 1, margin: 0 }}>
+        <label className="flbl">SATS</label>
         <div className="fwrap">
           <input
             className="finp"
@@ -161,7 +161,7 @@ function AmountFields({ idPrefix, satValue, onSatChange, fiatValue, onFiatChange
           />
         </div>
       </div>
-    </>
+    </div>
   )
 }
 
@@ -253,12 +253,28 @@ export default function ReceiveSheet() {
   /* ── Clipboard helper ───────────────────────────────────────────────── */
   const copyToClipboard = useCallback(
     async (text: string, label: string) => {
+      let ok = false
       try {
         await navigator.clipboard.writeText(text)
-        showToast(`${label} copied`)
+        ok = true
       } catch {
-        showToast('Copy failed')
+        // Clipboard API denied — use textarea fallback
       }
+      if (!ok) {
+        try {
+          const ta = document.createElement('textarea')
+          ta.value = text
+          ta.style.cssText = 'position:fixed;left:-9999px;opacity:0'
+          document.body.appendChild(ta)
+          ta.focus()
+          ta.select()
+          ok = document.execCommand('copy')
+          document.body.removeChild(ta)
+        } catch {
+          // execCommand also failed
+        }
+      }
+      showToast(ok ? `${label} copied` : 'Copy failed — try long-press')
     },
     [showToast],
   )
@@ -352,7 +368,7 @@ export default function ReceiveSheet() {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            margin: '10px 0 6px',
+            margin: '16px 0 8px',
           }}
         >
           <span id="rcv-addr-lbl">Ark Address</span>
@@ -379,7 +395,7 @@ export default function ReceiveSheet() {
         </div>
 
         {/* Amount fields */}
-        <div id="rcv-amt-wrap">
+        <div id="rcv-amt-wrap" style={{ marginBottom: 4 }}>
           <AmountFields
             idPrefix="rcv-ark"
             satValue={arkSats}
@@ -392,13 +408,6 @@ export default function ReceiveSheet() {
         {/* Buttons */}
         <button
           className="btnp"
-          id="rcv-copy-btn"
-          onClick={() => copyToClipboard(arkAddress, 'Ark Address')}
-        >
-          Copy Ark Address
-        </button>
-        <button
-          className="btns"
           onClick={() => handleShare('Share Address', arkAddress, 'ark')}
         >
           Share
@@ -655,7 +664,7 @@ export default function ReceiveSheet() {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            margin: '10px 0 6px',
+            margin: '16px 0 8px',
           }}
         >
           <span>Boarding Address</span>
@@ -693,12 +702,6 @@ export default function ReceiveSheet() {
         {/* Buttons */}
         <button
           className="btnp"
-          onClick={() => copyToClipboard(boardingAddress, 'Boarding Address')}
-        >
-          Copy Boarding Address
-        </button>
-        <button
-          className="btns"
           onClick={() => handleShare('Share Address', boardingAddress, 'onchain')}
         >
           Share
