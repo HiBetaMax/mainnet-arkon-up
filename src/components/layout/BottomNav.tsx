@@ -76,9 +76,17 @@ export default function BottomNav() {
 
   const handleNav = useCallback(
     (id: Page) => {
-      // Close any open sub-pages when switching tabs
-      closeAllSheets()
-      document.querySelectorAll('.subpage.open').forEach((el) => el.classList.remove('open'))
+      // Animate close any open sub-pages, then navigate
+      const openPages = document.querySelectorAll('.subpage.open')
+      if (openPages.length > 0) {
+        openPages.forEach((el) => el.classList.add('closing'))
+        setTimeout(() => {
+          openPages.forEach((el) => el.classList.remove('open', 'closing'))
+          closeAllSheets()
+        }, 280)
+      } else {
+        closeAllSheets()
+      }
 
       setActivePage(id)
 

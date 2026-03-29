@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode } from 'react'
+import { useEffect, useRef, useCallback, type ReactNode } from 'react'
 import useStore from '../../store'
 
 interface SheetWrapperProps {
@@ -12,19 +12,31 @@ interface SheetWrapperProps {
   onClose?: () => void
 }
 
+/** Duration of close animation in ms — must match CSS */
+const CLOSE_MS = 280
+
 export default function SheetWrapper({ id, title, titleId, children, zIndex, customHead, onClose }: SheetWrapperProps) {
   const isOpen = useStore((s) => s.openSheets.includes(id))
   const closeSheet = useStore((s) => s.closeSheet)
   const pageRef = useRef<HTMLDivElement>(null)
+  const closingRef = useRef(false)
 
   // Sync Zustand state → DOM class (for CSS animations + legacy compat)
   useEffect(() => {
     const el = pageRef.current
     if (!el) return
     if (isOpen) {
+      closingRef.current = false
+      el.classList.remove('closing')
       el.classList.add('open')
-    } else {
-      el.classList.remove('open')
+    } else if (el.classList.contains('open') && !closingRef.current) {
+      // Trigger close animation
+      closingRef.current = true
+      el.classList.add('closing')
+      setTimeout(() => {
+        el.classList.remove('open', 'closing')
+        closingRef.current = false
+      }, CLOSE_MS)
     }
   }, [isOpen])
 
@@ -33,6 +45,7 @@ export default function SheetWrapper({ id, title, titleId, children, zIndex, cus
     const el = pageRef.current
     if (!el) return
     const observer = new MutationObserver(() => {
+      if (closingRef.current) return // ignore changes during close animation
       const hasOpen = el.classList.contains('open')
       const storeHas = useStore.getState().openSheets.includes(id)
       if (hasOpen && !storeHas) {
@@ -45,11 +58,22 @@ export default function SheetWrapper({ id, title, titleId, children, zIndex, cus
     return () => observer.disconnect()
   }, [id])
 
-  const handleBack = () => {
-    closeSheet(id)
-    pageRef.current?.classList.remove('open')
-    onClose?.()
-  }
+  const handleBack = useCallback(() => {
+    const el = pageRef.current
+    if (el && el.classList.contains('open')) {
+      closingRef.current = true
+      el.classList.add('closing')
+      setTimeout(() => {
+        el.classList.remove('open', 'closing')
+        closingRef.current = false
+        closeSheet(id)
+        onClose?.()
+      }, CLOSE_MS)
+    } else {
+      closeSheet(id)
+      onClose?.()
+    }
+  }, [id, closeSheet, onClose])
 
   return (
     <div

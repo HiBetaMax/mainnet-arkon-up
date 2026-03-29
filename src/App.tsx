@@ -67,8 +67,17 @@ export default function App() {
   const handleEscape = useCallback(
     (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        closeAllSheets()
-        document.querySelectorAll('.overlay.open, .subpage.open').forEach((el) => el.classList.remove('open'))
+        const openPages = document.querySelectorAll('.subpage.open')
+        if (openPages.length > 0) {
+          openPages.forEach((el) => el.classList.add('closing'))
+          setTimeout(() => {
+            openPages.forEach((el) => el.classList.remove('open', 'closing'))
+            closeAllSheets()
+          }, 280)
+        } else {
+          closeAllSheets()
+          document.querySelectorAll('.overlay.open').forEach((el) => el.classList.remove('open'))
+        }
       }
     },
     [closeAllSheets]
